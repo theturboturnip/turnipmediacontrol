@@ -21,6 +21,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
+import android.support.annotation.Nullable;
 import android.util.JsonWriter;
 import android.util.Log;
 
@@ -39,7 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class MediaNotificationFinderService extends NotificationListenerService {
+public class MediaNotificationFinderService extends NotificationListenerService implements MediaSessionManager.OnActiveSessionsChangedListener {
 
     public static final int MSG_REQUEST_NOTIFICATION_LIST = 1;
     public static final int MSG_RECEIVE_NOTIFICATION_LIST = 2;
@@ -47,9 +48,31 @@ public class MediaNotificationFinderService extends NotificationListenerService 
     private Collection<Messenger> inputMessengers = new ArrayList<>();
 
     // This class holds notification clones, so they won't change unexpectedly
+    public static class MediaNotification {
+        public final StatusBarNotification notification;
+        public final MediaController controller;
+
+        MediaNotification(StatusBarNotification notification,
+                          MediaController controller) {
+            this.notification = notification;
+            this.controller = controller;
+        }
+
+        /*@Override
+        public boolean equals(@Nullable Object obj) {
+            if (!(obj instanceof MediaNotification))
+                return false;
+
+            return notification.getId() == ((MediaNotification)obj).notification.getId();
+        }
+
+        @Override
+        public int hashCode() {
+            return notification.getId();
+        }*/
+    }
     public static class MediaNotificationSet {
-        StatusBarNotification primaryMediaNotification;
-        Set<StatusBarNotification> otherMediaNotifications;
+        List<MediaNotification> orderedMediaNotifications = new ArrayList<>();
     }
     private static MediaNotificationSet currentSet = new MediaNotificationSet();
 
@@ -69,143 +92,29 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         }
     };
 
-    // TO USE:
-    // Call MediaNotificationFinderService.addListener or something
-
-    /*public interface NotificationsProvider {
-        Set<String> getAppsWithNotifications();
-    }
-
-    static class IncomingMessageHandler extends Handler {
-        private final NotificationsProvider provider;
-        IncomingMessageHandler(NotificationsProvider provider){
-            this.provider = provider;
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.replyTo == null || msg.what != MSG_REQUEST_NOTIFICATION_LIST) {
-                super.handleMessage(msg);
-                return;
-            }
-
-            // Pack notification data into message
-            String jsonNotificationData = "";
-            try{
-                JSONStringer stringer = new JSONStringer();
-                stringer.object();
-                stringer.key("ARRAY");
-                stringer.array();
-                for (String appWithNotification : provider.getAppsWithNotifications()){
-                    stringer.value(appWithNotification);
-                }
-                stringer.endArray();
-                stringer.endObject();
-                jsonNotificationData = stringer.toString();
-            }catch (JSONException e){
-                e.printStackTrace();
-            }
-            Message toSend = Message.obtain(this, MSG_RECEIVE_NOTIFICATION_LIST, jsonNotificationData);
-
-            try {
-                msg.replyTo.send(toSend);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        }
-    }*/
-
     public interface Interface {
         void updateNotificationSet(MediaNotificationSet notificationSet);
     }
     private static List<Interface> interfaces = new ArrayList<>();
 
-    /*public static abstract class Interface {
-        private Messenger serviceOutputConnection;
-        private Messenger serviceInputConnection;
-        public boolean isBound = false;
-
-        private ServiceConnection mConnection = new ServiceConnection() {
-            public void onServiceConnected(ComponentName className, IBinder binder) {
-                // This is called when the connection with the service has been
-                // established, giving us the object we can use to
-                // interact with the service.  We are communicating with the
-                // service using a Messenger, so here we get a client-side
-                // representation of that from the raw IBinder object.
-                serviceInputConnection = new Messenger(binder);
-                isBound = true;
-            }
-
-            public void onServiceDisconnected(ComponentName className) {
-                // This is called when the connection with the service has been
-                // unexpectedly disconnected -- that is, its process crashed.
-                serviceInputConnection = null;
-                isBound = false;
-            }
-        };
-
-        private static class NotificationReceiver extends Handler {
-            private final Interface owner;
-            NotificationReceiver(Interface owner) {
-                this.owner = owner;
-            }
-
-            @Override
-            public void handleMessage(Message msg) {
-                if (msg.what != MSG_RECEIVE_NOTIFICATION_LIST) {
-                    super.handleMessage(msg);
-                    return;
-                }
-
-                // Extract names from msg
-                List<String> notificationNames = new ArrayList<>();
-                try {
-                    JSONObject object = new JSONObject((String)msg.obj);
-                    JSONArray array = object.getJSONArray("ARRAY");
-                    for (int i = 0; i < array.length(); i++) {
-                        notificationNames.add(array.getString(i));
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                owner.getNotificationNames(notificationNames);
-            }
-        }
-
-        public Interface() {
-            serviceOutputConnection = new Messenger(new NotificationReceiver(this));
-        }
-
-        abstract void getNotificationNames(Collection<String> names);
-
-        public void onStart(Context context) {
-            context.bindService(new Intent(context, MediaNotificationFinderService.class), mConnection,
-                    Context.BIND_AUTO_CREATE);
-        }
-        public void onStop(Context context) {
-            if (isBound) {
-                context.unbindService(mConnection);
-                isBound = false;
-            }
-        }
-
-        public void requestNotificationList() {
-            if (!isBound) return;*/
-
-            /*Message toSend = Message.obtain(null, MSG_REQUEST_NOTIFICATION_LIST);
-            toSend.replyTo = serviceOutputConnection;
-            try {
-                serviceInputConnection.send(toSend);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }*/
-    //    }
-    //}
+    private static MediaSessionManager sessionManager;
+    private static ComponentName componentName;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        if (sessionManager == null)
+            sessionManager = getSystemService(MediaSessionManager.class);
+        if (componentName == null)
+            componentName = new ComponentName(this, MediaNotificationFinderService.class);
+        sessionManager.addOnActiveSessionsChangedListener(this, componentName);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (sessionManager != null)
+            sessionManager.removeOnActiveSessionsChangedListener(this);
     }
 
     @Override
@@ -215,25 +124,35 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         for (StatusBarNotification sbn : getActiveNotifications()){
             if (!notificationIsMedia(sbn)) continue;
             Log.e("turnipmediacontrol", "Found Notification: " + sbn.getPackageName());
-            discoverMediaNotification(sbn);
+            mediaNotifications.add(sbn);
         }
+        queueReprioritize();
     }
 
-    public static void updateCurrentSet(Context toUse) {
+    public static boolean reprioritize() {
         MediaNotificationSet set = new MediaNotificationSet();
 
-        List<MediaController> existingControllers = toUse.getSystemService(MediaSessionManager.class).getActiveSessions(new ComponentName(toUse, MediaNotificationFinderService.class));
-        Map<MediaSession.Token, MediaController> tokenMap = new HashMap<>();
-        for (MediaController controller : existingControllers) {
-            tokenMap.put(controller.getSessionToken(), controller);
+        // This is sorted by priority
+        List<MediaController> existingControllers = (sessionManager != null) ? sessionManager.getActiveSessions(componentName) : new ArrayList<>();
+
+        Map<MediaSession.Token, StatusBarNotification> tokenMap = new HashMap<>();
+        for (StatusBarNotification sbn : mediaNotifications) {
+            MediaSession.Token mediaSessionToken = ((MediaSession.Token)sbn.getNotification().extras.get(Notification.EXTRA_MEDIA_SESSION));
+            if (mediaSessionToken != null)
+                tokenMap.put(mediaSessionToken, sbn);
         }
 
-        if (mediaNotifications.contains(currentSet.primaryMediaNotification))
-            set.primaryMediaNotification = currentSet.primaryMediaNotification;
+        for (MediaController controller : existingControllers) {
+            StatusBarNotification associatedNotification = tokenMap.get(controller.getSessionToken());
+            if (associatedNotification != null)
+                set.orderedMediaNotifications.add(new MediaNotification(associatedNotification, controller));
+        }
 
-        for (StatusBarNotification mediaNotification : mediaNotifications) {
+        //if (mediaNotifications.contains(currentSet.primaryMediaNotification))
+        //    set.primaryMediaNotification = currentSet.primaryMediaNotification;
+
+        /*for (StatusBarNotification mediaNotification : mediaNotifications) {
             // Check the notification has a MediaSession and a PlaybackState
-            MediaSession.Token mediaSessionToken = ((MediaSession.Token)mediaNotification.getNotification().extras.get(Notification.EXTRA_MEDIA_SESSION));
             if (mediaSessionToken == null) continue;
             MediaController controller = tokenMap.get(mediaSessionToken);
             if (controller == null) continue;
@@ -255,21 +174,21 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         for (StatusBarNotification mediaNotification : mediaNotifications) {
             if (mediaNotification != set.primaryMediaNotification)
                 set.otherMediaNotifications.add(mediaNotification);
-        }
+        }*/
 
-        boolean shouldUpdateListeners = (currentSet.primaryMediaNotification != set.primaryMediaNotification)
-                ||(currentSet.otherMediaNotifications != set.otherMediaNotifications);
+        boolean shouldUpdateListeners = (currentSet.orderedMediaNotifications != set.orderedMediaNotifications);
         currentSet = set;
-        if (shouldUpdateListeners)
-            updateListeners();
+        return shouldUpdateListeners;
     }
 
-    private static void updateListeners(){
+    private static void queueReprioritize(){
         new AsyncTask<Void, Void, Void>(){
             @Override
             protected Void doInBackground(Void... voids) {
-                for (Interface i : interfaces){
-                    i.updateNotificationSet(currentSet);
+                if (reprioritize()) {
+                    for (Interface i : interfaces) {
+                        i.updateNotificationSet(currentSet);
+                    }
                 }
                 return null;
             }
@@ -278,11 +197,11 @@ public class MediaNotificationFinderService extends NotificationListenerService 
 
     private void discoverMediaNotification(StatusBarNotification sbn){
         mediaNotifications.add(sbn);
-        updateCurrentSet(this);
+        queueReprioritize();
     }
     private void removeMediaNotification(StatusBarNotification sbn){
         mediaNotifications.remove(sbn);
-        updateCurrentSet(this);
+        queueReprioritize();
     }
     private boolean notificationIsMedia(StatusBarNotification sbn){
         return Notification.CATEGORY_TRANSPORT.equals(sbn.getNotification().category);
@@ -303,6 +222,10 @@ public class MediaNotificationFinderService extends NotificationListenerService 
             removeMediaNotification(sbn);
     }
 
+    @Override
+    public void onActiveSessionsChanged(@Nullable List<MediaController> controllers) {
+        queueReprioritize();
+    }
 
     public static void attachInterface(Interface i) {
         if (!interfaces.contains(i))

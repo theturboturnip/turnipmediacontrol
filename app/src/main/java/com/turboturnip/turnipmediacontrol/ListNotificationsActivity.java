@@ -1,6 +1,7 @@
 package com.turboturnip.turnipmediacontrol;
 
 import android.content.pm.PermissionInfo;
+import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
@@ -63,16 +64,9 @@ public class ListNotificationsActivity extends AppCompatActivity {
         Log.i("turnipmediacontrol", "Received Notifications!");
         StringBuilder namesBuilder = new StringBuilder();
 
-        namesBuilder.append("Primary: ");
-        if (notificationSet.primaryMediaNotification != null)
-            namesBuilder.append(notificationSet.primaryMediaNotification.getPackageName());
-        else
-            namesBuilder.append("null");
-        if (notificationSet.otherMediaNotifications != null) {
-            namesBuilder.append("\nOthers: ");
-            for (StatusBarNotification secondaryNotification : notificationSet.otherMediaNotifications) {
-                namesBuilder.append(secondaryNotification.getPackageName()).append('\n');
-            }
+
+        for (MediaNotificationFinderService.MediaNotification secondaryNotification : notificationSet.orderedMediaNotifications) {
+            namesBuilder.append(secondaryNotification.notification.getPackageName()).append(':').append(secondaryNotification.controller.getMetadata().getString(MediaMetadata.METADATA_KEY_TITLE)).append('\n');
         }
 
         notificationListText.setText(namesBuilder.toString());
