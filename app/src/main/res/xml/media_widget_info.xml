@@ -10,4 +10,4 @@
     android:resizeMode="horizontal"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen"/>
-    <!--android:configure="com.turboturnip.turnipmediacontrol.MediaWidgetConfigureActivity"-->
+    <!--android:configure="com.turboturnip.turnipmediacontrol.widget.MediaWidgetConfigureActivity"-->

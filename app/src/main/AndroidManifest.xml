@@ -29,10 +29,11 @@
             </intent-filter>
         </service>
 
-        <receiver android:name=".MediaWidget">
+        <receiver android:name=".widget.MediaWidgetProvider">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.turboturnip.turnipmediacontrol.WIDGET_ACTION" />
+                <action android:name="com.turboturnip.turnipmediacontrol.WIDGET_NOTIFICATION_ACTION" />
             </intent-filter>
 
             <meta-data
@@ -40,7 +41,7 @@
                 android:resource="@xml/media_widget_info" />
         </receiver>
 
-        <activity android:name=".MediaWidgetConfigureActivity">
+        <activity android:name=".widget.MediaWidgetConfigureActivity">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
             </intent-filter>

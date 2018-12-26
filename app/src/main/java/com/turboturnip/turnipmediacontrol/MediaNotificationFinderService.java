@@ -19,11 +19,15 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.provider.MediaStore;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.JsonWriter;
 import android.util.Log;
+
+import com.turboturnip.turnipmediacontrol.widget.MediaWidgetData;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -58,21 +62,35 @@ public class MediaNotificationFinderService extends NotificationListenerService 
             this.controller = controller;
         }
 
+        public static boolean notificationsEqual(MediaNotification a, MediaNotification b) {
+            if (a == null && b == null) return true;
+            if (a == null || b == null) return false;
+            return (a.notification.getId() == b.notification.getId());
+        }
+
         /*@Override
         public boolean equals(@Nullable Object obj) {
             if (!(obj instanceof MediaNotification))
                 return false;
 
-            return notification.getId() == ((MediaNotification)obj).notification.getId();
+            return notification.describeContents() == ((MediaNotification)obj).notification.describeContents();
         }
 
         @Override
         public int hashCode() {
-            return notification.getId();
+            return notification.describeContents();
         }*/
+
+
     }
     public static class MediaNotificationSet {
-        List<MediaNotification> orderedMediaNotifications = new ArrayList<>();
+        public List<MediaNotification> orderedMediaNotifications = new ArrayList<>();
+
+        @NonNull
+        @Override
+        public String toString() {
+            return "[MediaNotificationSet size:" + orderedMediaNotifications.size() + "]";
+        }
     }
     private static MediaNotificationSet currentSet = new MediaNotificationSet();
 
@@ -93,9 +111,10 @@ public class MediaNotificationFinderService extends NotificationListenerService 
     };
 
     public interface Interface {
-        void updateNotificationSet(MediaNotificationSet notificationSet);
+        void onUpdateOrder(MediaNotificationSet notificationSet);
+        void onUpdateState(MediaNotificationSet notificationSet);
     }
-    private static List<Interface> interfaces = new ArrayList<>();
+    private static Set<Interface> interfaces = new HashSet<>();
 
     private static MediaSessionManager sessionManager;
     private static ComponentName componentName;
@@ -120,16 +139,18 @@ public class MediaNotificationFinderService extends NotificationListenerService 
     @Override
     public void onListenerConnected() {
         super.onListenerConnected();
-        Log.e("turnipmediacontrol", "Listener Connected");
+        //Log.e("turnipmediacontrol", "Listener Connected");
         for (StatusBarNotification sbn : getActiveNotifications()){
             if (!notificationIsMedia(sbn)) continue;
-            Log.e("turnipmediacontrol", "Found Notification: " + sbn.getPackageName());
+            //Log.e("turnipmediacontrol", "Found Notification: " + sbn.getPackageName());
             mediaNotifications.add(sbn);
         }
         queueReprioritize();
     }
 
-    public static boolean reprioritize() {
+    private static final int POSITIONS_CHANGED = 1 << 0;
+    private static final int STATE_CHANGED = 1 << 1;
+    private static int reprioritize() {
         MediaNotificationSet set = new MediaNotificationSet();
 
         // This is sorted by priority
@@ -176,7 +197,40 @@ public class MediaNotificationFinderService extends NotificationListenerService 
                 set.otherMediaNotifications.add(mediaNotification);
         }*/
 
-        boolean shouldUpdateListeners = (currentSet.orderedMediaNotifications != set.orderedMediaNotifications);
+        int shouldUpdateListeners = 0;
+        if (currentSet == null)
+            shouldUpdateListeners = POSITIONS_CHANGED | STATE_CHANGED;
+        else if (set.orderedMediaNotifications.size() != currentSet.orderedMediaNotifications.size())
+            shouldUpdateListeners = POSITIONS_CHANGED | STATE_CHANGED;
+        else {
+            for (int i = 0; i < set.orderedMediaNotifications.size(); i++) {
+                MediaNotification newNotification = set.orderedMediaNotifications.get(i);
+                MediaNotification oldNotification = currentSet.orderedMediaNotifications.get(i);
+                if (oldNotification.notification.getId() != newNotification.notification.getId()){
+                    shouldUpdateListeners = shouldUpdateListeners | POSITIONS_CHANGED;
+                }
+
+                newNotification = null;
+                for (MediaNotification notification : currentSet.orderedMediaNotifications) {
+                    if (notification.notification.getId() == oldNotification.notification.getId()) {
+                        newNotification = notification;
+                        break;
+                    }
+                }
+                if (newNotification == null) continue;
+
+                if (!newNotification.controller.getMetadata().equals(oldNotification.controller.getMetadata())) {
+                    shouldUpdateListeners = shouldUpdateListeners | STATE_CHANGED;
+                    break;
+                }
+                if (newNotification.controller.getPlaybackState().getState() != oldNotification.controller.getPlaybackState().getState()) {
+                    shouldUpdateListeners = shouldUpdateListeners | STATE_CHANGED;
+                    break;
+                }
+            }
+        }
+        Log.e("turnipmedia", "New: " + set + " Current: " + currentSet + " Will Update Listeners: " + shouldUpdateListeners);
+
         currentSet = set;
         return shouldUpdateListeners;
     }
@@ -185,9 +239,13 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         new AsyncTask<Void, Void, Void>(){
             @Override
             protected Void doInBackground(Void... voids) {
-                if (reprioritize()) {
+                int reprioritizeResult = reprioritize();
+                if (reprioritizeResult != 0) {
                     for (Interface i : interfaces) {
-                        i.updateNotificationSet(currentSet);
+                        if ((reprioritizeResult & POSITIONS_CHANGED) != 0)
+                            i.onUpdateOrder(currentSet);
+                        if ((reprioritizeResult & STATE_CHANGED) != 0)
+                            i.onUpdateState(currentSet);
                     }
                 }
                 return null;
@@ -229,9 +287,9 @@ public class MediaNotificationFinderService extends NotificationListenerService 
     }
 
     public static void attachInterface(Interface i) {
-        if (!interfaces.contains(i))
-            interfaces.add(i);
-        i.updateNotificationSet(currentSet);
+        interfaces.add(i);
+        i.onUpdateOrder(currentSet);
+        i.onUpdateState(currentSet);
     }
     public static void detachInterface(Interface i) {
         interfaces.remove(i);

@@ -24,7 +24,11 @@ public class ListNotificationsActivity extends AppCompatActivity {
 
     MediaNotificationFinderService.Interface notificationInterface = new MediaNotificationFinderService.Interface() {
         @Override
-        public void updateNotificationSet(MediaNotificationFinderService.MediaNotificationSet notificationSet) {
+        public void onUpdateOrder(MediaNotificationFinderService.MediaNotificationSet notificationSet) {
+            updateNames(notificationSet);
+        }
+        @Override
+        public void onUpdateState(MediaNotificationFinderService.MediaNotificationSet notificationSet) {
             updateNames(notificationSet);
         }
     };
@@ -61,7 +65,7 @@ public class ListNotificationsActivity extends AppCompatActivity {
         if (notificationListText == null)
             return;
 
-        Log.i("turnipmediacontrol", "Received Notifications!");
+        //Log.i("turnipmediacontrol", "Received Notifications!");
         StringBuilder namesBuilder = new StringBuilder();
 
 

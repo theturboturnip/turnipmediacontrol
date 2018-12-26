@@ -2,13 +2,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="100dp"
+    android:layout_height="match_parent"
+    tools:layout_height="180dp"
     android:background="#bbb"
     android:padding="@dimen/widget_margin">
 
     <ImageButton
         android:id="@+id/nav_left"
-        android:layout_width="wrap_content"
+        android:layout_width="36dp"
         android:layout_height="match_parent"
         android:layout_alignParentStart="true"
         android:background="@android:color/transparent"
@@ -50,7 +51,7 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_above="@+id/buttons"
                 android:layout_alignParentTop="true"
                 android:gravity="center_vertical"
@@ -61,14 +62,15 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
 
+                    android:layout_marginBottom="-2dp"
                     android:duplicateParentState="true"
                     android:ellipsize="marquee"
                     android:focusable="true"
                     android:focusableInTouchMode="true"
                     android:marqueeRepeatLimit="marquee_forever"
+
                     android:scrollHorizontally="true"
                     android:singleLine="true"
-
                     android:text=""
                     android:textColor="@android:color/black"
                     android:textSize="16sp"
@@ -86,6 +88,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
 
+                    android:layout_marginBottom="-2dp"
+                    android:ellipsize="end"
                     android:maxLines="1"
                     android:text=""
                     android:textSize="12sp"
@@ -94,12 +98,14 @@
                 <TextView
                     android:id="@+id/album_text"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="wrap_content"
 
+                    android:ellipsize="end"
                     android:maxLines="1"
                     android:text=""
                     android:textSize="12sp"
                     tools:text="a very long album name which is incredibly splendiforous"></TextView>
+
             </LinearLayout>
 
             <LinearLayout
@@ -180,7 +186,7 @@
 
     <ImageButton
         android:id="@+id/nav_right"
-        android:layout_width="wrap_content"
+        android:layout_width="36dp"
         android:layout_height="match_parent"
         android:layout_alignParentEnd="true"
         android:background="@android:color/transparent"

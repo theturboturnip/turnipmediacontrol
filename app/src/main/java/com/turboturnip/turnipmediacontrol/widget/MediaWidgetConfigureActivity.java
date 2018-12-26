@@ -1,4 +1,4 @@
-package com.turboturnip.turnipmediacontrol;
+package com.turboturnip.turnipmediacontrol.widget;
 
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
@@ -9,12 +9,14 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 
+import com.turboturnip.turnipmediacontrol.R;
+
 /**
- * The configuration screen for the {@link MediaWidget MediaWidget} AppWidget.
+ * The configuration screen for the {@link MediaWidgetProvider MediaWidgetProvider} AppWidget.
  */
 public class MediaWidgetConfigureActivity extends Activity {
 
-    private static final String PREFS_NAME = "com.turboturnip.turnipmediacontrol.MediaWidget";
+    private static final String PREFS_NAME = "com.turboturnip.turnipmediacontrol.widget.MediaWidgetProvider";
     private static final String PREF_PREFIX_KEY = "appwidget_";
     int mAppWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
     EditText mAppWidgetText;
@@ -28,7 +30,7 @@ public class MediaWidgetConfigureActivity extends Activity {
 
             // It is the responsibility of the configuration activity to update the app widget
             AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(context);
-            //MediaWidget.updateAppWidget(context, appWidgetManager, mAppWidgetId);
+            //MediaWidgetProvider.updateAppWidget(context, appWidgetManager, mAppWidgetId);
 
             // Make sure we pass back the original appWidgetId
             Intent resultValue = new Intent();
