@@ -20,4 +20,9 @@
         android:layout_height="wrap_content"
         android:text="Update List" />
 
+    <include
+        layout="@layout/media_widget"
+        android:layout_width="match_parent"
+        android:layout_height="100dp" />
+
 </LinearLayout>

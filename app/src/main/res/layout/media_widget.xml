@@ -2,18 +2,17 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="100dp"
     android:background="#bbb"
     android:padding="@dimen/widget_margin">
 
     <ImageButton
         android:id="@+id/nav_left"
         android:layout_width="wrap_content"
-        android:layout_height="@dimen/widget_height"
+        android:layout_height="match_parent"
         android:layout_alignParentStart="true"
         android:background="@android:color/transparent"
         android:tint="#555"
-        android:visibility="gone"
         app:srcCompat="@drawable/ic_chevron_left_24dp" />
 
     <RelativeLayout
@@ -23,7 +22,8 @@
         android:layout_toStartOf="@+id/nav_right"
         android:layout_toEndOf="@+id/nav_left"
         android:background="#09C"
-        android:backgroundTint="@android:color/background_light">
+        android:backgroundTint="@android:color/background_light"
+        android:padding="@dimen/widget_margin">
 
         <ImageView
             android:id="@+id/album_art"
@@ -41,53 +41,65 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_alignParentEnd="true"
+            android:layout_marginStart="8dp"
             android:layout_marginTop="4dp"
             android:layout_marginEnd="8dp"
             android:layout_marginBottom="0dp"
             android:layout_toEndOf="@+id/album_art"
-            android:background="@android:color/white"
-            android:paddingStart="8dp">
+            android:background="@android:color/white">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_above="@+id/buttons"
                 android:layout_alignParentTop="true"
-                android:layout_marginTop="0dp"
-                android:layout_marginBottom="0dp"
                 android:gravity="center_vertical"
                 android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/title_text"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+
+                    android:duplicateParentState="true"
                     android:ellipsize="marquee"
                     android:focusable="true"
                     android:focusableInTouchMode="true"
                     android:marqueeRepeatLimit="marquee_forever"
                     android:scrollHorizontally="true"
                     android:singleLine="true"
+
                     android:text=""
                     android:textColor="@android:color/black"
                     android:textSize="16sp"
                     android:typeface="normal"
-                    tools:text="a very long song title which is incredibly splendiforous" />
+                    tools:text="a very long song title which is incredibly splendiforous">
+
+                    <requestFocus
+                        android:duplicateParentState="true"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true" />
+                </TextView>
 
                 <TextView
-                    android:id="@+id/subtitle_text"
+                    android:id="@+id/artist_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:ellipsize="marquee"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true"
-                    android:fontFamily="sans-serif"
-                    android:marqueeRepeatLimit="marquee_forever"
-                    android:scrollHorizontally="true"
-                    android:singleLine="false"
+
+                    android:maxLines="1"
                     android:text=""
-                    android:textSize="12dp"
-                    tools:text="a very long album name which is incredibly splendiforous" />
+                    android:textSize="12sp"
+                    tools:text="a very long artist name which is incredibly splendiforous"></TextView>
+
+                <TextView
+                    android:id="@+id/album_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+
+                    android:maxLines="1"
+                    android:text=""
+                    android:textSize="12sp"
+                    tools:text="a very long album name which is incredibly splendiforous"></TextView>
             </LinearLayout>
 
             <LinearLayout
@@ -98,35 +110,66 @@
                 android:layout_marginBottom="4dp"
                 android:orientation="horizontal">
 
+                <!--android:focusable="true"-->
+                <!--android:foreground="?attr/selectableItemBackground"-->
+
                 <ImageButton
                     android:id="@+id/skip_previous_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:background="@android:color/transparent"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/ripple"
+                    android:backgroundTint="@android:color/black"
+                    android:backgroundTintMode="src_atop"
+                    android:clickable="true"
                     android:elevation="0dp"
+                    android:focusable="true"
                     android:tint="@android:color/black"
                     android:tintMode="multiply"
                     app:srcCompat="@drawable/ic_skip_previous_36dp" />
 
-                <ImageButton
-                    android:id="@+id/play_button"
-                    android:layout_width="wrap_content"
+                <RelativeLayout
+                    android:layout_width="36dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@android:color/transparent"
-                    android:elevation="0dp"
-                    android:tint="@android:color/black"
-                    android:tintMode="multiply"
-                    app:srcCompat="@drawable/ic_play_arrow_36dp" />
+                    android:layout_weight="1">
+
+                    <ProgressBar
+                        android:id="@+id/play_pending"
+                        style="?android:attr/progressBarStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:indeterminateTint="#000"
+                        android:indeterminateTintMode="src_atop"
+                        android:visibility="visible" />
+
+                    <ImageButton
+                        android:id="@+id/play_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:adjustViewBounds="true"
+                        android:background="@drawable/ripple"
+                        android:backgroundTint="@android:color/black"
+                        android:clickable="true"
+                        android:elevation="0dp"
+                        android:focusable="true"
+                        android:tint="@android:color/black"
+                        android:tintMode="multiply"
+                        android:visibility="visible"
+                        app:srcCompat="@drawable/ic_play_arrow_36dp" />
+                </RelativeLayout>
 
                 <ImageButton
                     android:id="@+id/skip_next_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:background="@android:color/transparent"
+                    android:adjustViewBounds="true"
+                    android:background="@drawable/ripple"
+                    android:backgroundTint="@android:color/black"
+                    android:clickable="true"
                     android:elevation="0dp"
+                    android:focusable="true"
                     android:tint="@android:color/black"
                     android:tintMode="multiply"
                     app:srcCompat="@drawable/ic_skip_next_36dp" />
@@ -138,10 +181,10 @@
     <ImageButton
         android:id="@+id/nav_right"
         android:layout_width="wrap_content"
-        android:layout_height="@dimen/widget_height"
+        android:layout_height="match_parent"
         android:layout_alignParentEnd="true"
         android:background="@android:color/transparent"
         android:tint="#555"
-        android:visibility="gone"
         app:srcCompat="@drawable/ic_chevron_right_24dp" />
+
 </RelativeLayout>

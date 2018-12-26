@@ -218,6 +218,7 @@ public class MediaNotificationFinderService extends NotificationListenerService 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
         super.onNotificationRemoved(sbn);
+
         if (notificationIsMedia(sbn))
             removeMediaNotification(sbn);
     }
