@@ -41,9 +41,9 @@ public class MediaWidget extends AppWidgetProvider {
         int selectedNotificationIndex = 0;
     }
 
-    List<MediaNotificationFinderService.MediaNotification> orderedNotifications = new ArrayList<>();
-    Map<Integer, WidgetData> widgetIdToData = new HashMap<>();
-    MediaNotificationFinderService.Interface notificationWatcher = new MediaNotificationFinderService.Interface() {
+    static List<MediaNotificationFinderService.MediaNotification> orderedNotifications = new ArrayList<>();
+    static Map<Integer, WidgetData> widgetIdToData = new HashMap<>();
+    static MediaNotificationFinderService.Interface notificationWatcher = new MediaNotificationFinderService.Interface() {
         @Override
         public void updateNotificationSet(MediaNotificationFinderService.MediaNotificationSet notificationSet) {
             Log.e("turnipmediawidget","Got " + notificationSet.orderedMediaNotifications.size() + " Notifications");
@@ -52,15 +52,19 @@ public class MediaWidget extends AppWidgetProvider {
         }
     };
 
-    boolean attached = false;
+    static boolean attached = false;
     boolean shouldUpdate = false;
-    boolean changedSinceLastUpdate = true;
+    static boolean changedSinceLastUpdate = true;
     Handler updateHandler = new Handler();
     long updateDelay = 250; // ms
 
+    private void Loge(Object msg) {
+        Log.e("turnipmediawidget", System.identityHashCode(this) + " - " + msg);
+    }
+
     void updateAppWidget(Context context, AppWidgetManager appWidgetManager,
                                 int appWidgetId) {
-        Log.e("turnipmedia", "Updating widget");
+        Loge("Updating widget");
 
         WidgetData widgetData = widgetIdToData.get(appWidgetId);
         if (widgetData == null) {
@@ -71,7 +75,7 @@ public class MediaWidget extends AppWidgetProvider {
 
         RemoteViews views = null;
         if (orderedNotifications.size() > 0) {
-            Log.e("turnipmedia", "Updating widget as notificatoin");
+            Loge("Updating widget as notificatoin");
             views = new RemoteViews(context.getPackageName(), R.layout.media_widget);
 
             MediaNotificationFinderService.MediaNotification selectedNotification = orderedNotifications.get(widgetData.selectedNotificationIndex);
@@ -110,10 +114,10 @@ public class MediaWidget extends AppWidgetProvider {
         } else {
             // Handle switching from some notification to no notification
             views = new RemoteViews(context.getPackageName(), R.layout.speed_dial_widget);
-            views.setOnClickPendingIntent(R.id.refresh_button,  generateUpdateWidgetPendingIntent(context, appWidgetId));
+            //views.setOnClickPendingIntent(R.id.refresh_button,  generateUpdateWidgetPendingIntent(context, appWidgetId));
         }
 
-        //Log.e("turnipmediawidget", "Found Album Art View " + views.)
+        //Loge("turnipmediawidget", "Found Album Art View " + views.)
 
         // Instruct the widget manager to update the widget
         appWidgetManager.updateAppWidget(appWidgetId, views);
@@ -127,18 +131,18 @@ public class MediaWidget extends AppWidgetProvider {
 
         appWidgetManager.partiallyUpdateAppWidget(appWidgetId, views);
     }
-    PendingIntent generateUpdateWidgetPendingIntent(Context context, int appWidgetId) {
+    /*PendingIntent generateUpdateWidgetPendingIntent(Context context, int appWidgetId) {
         Intent updateWidget = new Intent(context, MediaWidget.class).setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         updateWidget.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[]{appWidgetId});
-        return PendingIntent.getBroadcast(context, 0, updateWidget, 0);
-    }
+        return PendingIntent.getBroadcast(context, 1, updateWidget, 0);
+    }*/
     private PendingIntent generatePlayPausePendingIntent(Context context, boolean playing, MediaNotificationFinderService.MediaNotification notification, int appWidgetId) {
         Intent intent = generateActionIntent(context, playing ? ACTION_PAUSE : ACTION_PLAY, notification.notification.getId(), appWidgetId);
         PendingIntent newPendingIntent =  PendingIntent.getBroadcast(context,
                 0,
                 intent,
                 0);
-        //Log.e("turnipmediawidget", "Generated pendingintent for notification: " + newPendingIntent + " data: " + intent.getData());
+        //Loge("turnipmediawidget", "Generated pendingintent for notification: " + newPendingIntent + " data: " + intent.getData());
         return newPendingIntent;
     }
     private PendingIntent generateSkipNextPendingIntent(Context context, MediaNotificationFinderService.MediaNotification notification, int appWidgetId) {
@@ -165,9 +169,9 @@ public class MediaWidget extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         //
-        Log.e("turnipmediawidget", "Received intent " + intent.getAction() + " " + intent.getData());
+        Loge("Received intent " + intent.getAction() + " " + intent.getData());
         if (WIDGET_ACTION.equals(intent.getAction())){
-            Log.e("turnipmediawidget", "Received intent " + intent.getAction() + " " + intent.getData());
+            Loge("Received intent " + intent.getAction() + " " + intent.getData());
             try {
                 int notificationId = Integer.parseInt(intent.getData().getQueryParameter(TARGET_NOTIFICATION_ID));
                 MediaController controller = null;
@@ -182,16 +186,16 @@ public class MediaWidget extends AppWidgetProvider {
                     AppWidgetManager appWidgetManager = context.getSystemService(AppWidgetManager.class);
                     switch (intent.getData().getPath()) {
                         case ACTION_PLAY:
-                            if (controller.getPlaybackState().getState() != PlaybackState.STATE_PLAYING) {
+                            //if (controller.getPlaybackState().getState() != PlaybackState.STATE_PLAYING) {
                                 controller.getTransportControls().play();
                                 setAppWidgetPlayPending(context, appWidgetManager, intent.getIntExtra(WIDGET_ID, -1));
-                            }
+                            //}
                             break;
                         case ACTION_PAUSE:
-                            if (controller.getPlaybackState().getState() != PlaybackState.STATE_PAUSED) {
+                            //if (controller.getPlaybackState().getState() != PlaybackState.STATE_PAUSED) {
                                 controller.getTransportControls().pause();
                                 setAppWidgetPlayPending(context, appWidgetManager, intent.getIntExtra(WIDGET_ID, -1));
-                            }
+                            //}
                             break;
                         case ACTION_SKIP_NEXT:
                             controller.getTransportControls().skipToNext();
@@ -200,11 +204,13 @@ public class MediaWidget extends AppWidgetProvider {
                             controller.getTransportControls().skipToPrevious();
                             break;
                         default:
-                            Log.e("turnipmediawidget", "Incorrect WIDGET_ACTION path " + intent.getData().getPath());
+                            Loge("Incorrect WIDGET_ACTION path " + intent.getData().getPath());
                     }
+                } else {
+                    Loge("Null Controller");
                 }
             } catch (NullPointerException e) {
-                Log.e("turnipmediawidget", "Failed to process a WIDGET_ACTION with URI " + intent.getData());
+                Loge("Failed to process a WIDGET_ACTION with URI " + intent.getData());
             }
         } else {
             super.onReceive(context, intent);
@@ -228,7 +234,7 @@ public class MediaWidget extends AppWidgetProvider {
 
     @Override
     public void onDeleted(Context context, int[] appWidgetIds) {
-        Log.e("turnipmediawidget", "onDeleted");
+        Loge("onDeleted");
         // When the user deletes the widget, delete the preference associated with it.
         for (int appWidgetId : appWidgetIds) {
             MediaWidgetConfigureActivity.deleteTitlePref(context, appWidgetId);
@@ -241,7 +247,7 @@ public class MediaWidget extends AppWidgetProvider {
         super.onEnabled(context);
 
         // Enter relevant functionality for when the first widget is created
-        Log.e("turnipmediawidget", "onEnabled");
+        Loge("onEnabled");
 
         if (!shouldUpdate) {
             shouldUpdate = true;
@@ -250,7 +256,7 @@ public class MediaWidget extends AppWidgetProvider {
     }
 
     private void queueUpdate(final Context context) {
-        Log.e("turnipmediawidget", "queueUpdate");
+        Loge("queueUpdate");
 
         if (!attached) {
             MediaNotificationFinderService.attachInterface(notificationWatcher);
@@ -288,7 +294,7 @@ public class MediaWidget extends AppWidgetProvider {
     public void onDisabled(Context context) {
         super.onDisabled(context);
         // Enter relevant functionality for when the last widget is disabled
-        Log.e("turnipmediawidget", "onDisabled");
+        Loge("onDisabled");
         MediaNotificationFinderService.detachInterface(notificationWatcher);
         attached = false;
         shouldUpdate = false;
