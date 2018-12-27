@@ -1,13 +1,18 @@
 package com.turboturnip.turnipmediacontrol.widget;
 
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Icon;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.PlaybackState;
 import android.net.Uri;
+import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
@@ -18,10 +23,23 @@ import com.turboturnip.turnipmediacontrol.R;
 
 import static com.turboturnip.turnipmediacontrol.widget.MediaWidgetProvider.*;
 
+/*
+Known issue: Metadata generated from the notification instead of the controller will not update
+This is because of stuff
+ */
 public class MediaWidgetData {
     final int appWidgetId;
     boolean hasSetNotification = false;
     MediaNotificationFinderService.MediaNotification selectedNotification;
+
+    static final String[] notificationTextPriority = new String[] {
+            Notification.EXTRA_TITLE_BIG,
+            Notification.EXTRA_TITLE,
+            Notification.EXTRA_BIG_TEXT,
+            Notification.EXTRA_TEXT,
+            Notification.EXTRA_SUB_TEXT,
+            Notification.EXTRA_INFO_TEXT
+    };
 
     private Context context;
     private AppWidgetManager appWidgetManager;
@@ -40,6 +58,38 @@ public class MediaWidgetData {
                 appWidgetManager.partiallyUpdateAppWidget(appWidgetId, generateViews(false, true));
         }
     };
+
+    private static class Metadata {
+        Bitmap albumArtBitmap = null;
+        Icon albumArtIcon = null;
+        CharSequence title = null, artist = null, album = null;
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if (!(obj instanceof Metadata))
+                return false;
+
+            Metadata other = (Metadata)obj;
+            /*if (!other.albumArtBitmap.equals(albumArtBitmap))
+                return false;
+            if (!other.albumArtIcon.equals(albumArtIcon))
+                return false;*/
+            if (!other.title.toString().equals(title.toString()))
+                return false;
+            if (!other.artist.toString().equals(artist.toString()))
+                return false;
+            if (!other.album.toString().equals(album.toString()))
+                return false;
+            return true;
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return "[Metadata "+ title + " " + artist + " " + album + "]";
+        }
+    }
+    Metadata currentViewsMetadata = null;
     //private MediaNotificationFinderService.MediaNotification oldPrimaryNotification = null;
     /*private MediaNotificationFinderService.Interface notificationFinderInterface  = new MediaNotificationFinderService.Interface() {
         @Override
@@ -79,6 +129,30 @@ public class MediaWidgetData {
         hasSetNotification = true;
     }
 
+    public void updateActiveNotification(Context context, AppWidgetManager appWidgetManager, MediaNotificationFinderService.MediaNotification newSelectedNotification, boolean forceUpdate) {
+        if (selectedNotification == null) return;
+        if (!hasSetNotification) return;
+        if (!MediaNotificationFinderService.MediaNotification.notificationsEqual(selectedNotification, newSelectedNotification)) {
+            throw new RuntimeException("Tried to updateActiveNotification with nonmatching notification");
+        }
+
+        /*if (selectedNotification != null) {
+            selectedNotification.controller.unregisterCallback(controllerCallback);
+            newSelectedNotification.controller.registerCallback(controllerCallback);
+        }*/
+        //Log.e("turnipmediawidget", "Updated notification to new one");
+        selectedNotification = new MediaNotificationFinderService.MediaNotification(newSelectedNotification.notification, selectedNotification.controller);
+
+        if (forceUpdate || !generateMetadataForViews().equals(currentViewsMetadata)) {
+            this.context = context;
+            this.appWidgetManager = appWidgetManager;
+
+            Log.e("turnipmediawidget", "Partial Update");
+
+            appWidgetManager.partiallyUpdateAppWidget(appWidgetId, generateViews(false, true));
+        }
+    }
+
     public void manualUpdate(Context context, AppWidgetManager appWidgetManager) {
         this.context = context;
         this.appWidgetManager = appWidgetManager;
@@ -86,6 +160,42 @@ public class MediaWidgetData {
         Log.e("turnipmediawidget", "Full Update");
 
         appWidgetManager.updateAppWidget(appWidgetId, generateViews(true, true));
+    }
+
+    private Metadata generateMetadataForViews() {
+        Metadata resultMetadata = new Metadata();
+
+        MediaMetadata metadata = selectedNotification.controller.getMetadata();
+        if (metadata != null) {
+            resultMetadata.albumArtBitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+            resultMetadata.title = metadata.getText(MediaMetadata.METADATA_KEY_TITLE);
+            resultMetadata.artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST);
+            resultMetadata.album = metadata.getString(MediaMetadata.METADATA_KEY_ALBUM);
+        }
+        if (resultMetadata.title == null || resultMetadata.artist == null || resultMetadata.album == null) {
+            Bundle extras = selectedNotification.notification.getNotification().extras;
+            CharSequence[] info = new CharSequence[]{ "NO METADATA", "NO METADATA", "NO METADATA" };
+            int currentInfoIndex = 0;
+            for(String potentialExtra : notificationTextPriority) {
+                CharSequence extraValue = extras.getCharSequence(potentialExtra);
+                if (extraValue != null && extraValue.length() > 0) {
+                    info[currentInfoIndex++] = extras.getCharSequence(potentialExtra);
+                }
+            }
+            resultMetadata.title = (resultMetadata.title == null) ? info[0] : resultMetadata.title;
+            resultMetadata.artist = (resultMetadata.artist == null) ? info[1] : resultMetadata.artist;
+            resultMetadata.album = (resultMetadata.album == null) ? info[2] : resultMetadata.album;
+        }
+
+        if (resultMetadata.albumArtBitmap == null) {
+            resultMetadata.albumArtIcon = selectedNotification.notification.getNotification().getLargeIcon();
+            if (resultMetadata.albumArtIcon == null)
+                resultMetadata.albumArtIcon = selectedNotification.notification.getNotification().getSmallIcon();
+
+        }
+
+        //Log.e("turnipmediametadata", resultMetadata.toString());
+        return resultMetadata;
     }
 
     private RemoteViews generateViews(boolean updatePlayback, boolean updateMetadata) {
@@ -103,12 +213,18 @@ public class MediaWidgetData {
 
             if (updateMetadata){
                 Log.e("turnipmediawidget", "updating metadataa");
-                MediaMetadata metadata = selectedNotification.controller.getMetadata();
-                views.setImageViewBitmap(R.id.album_art, metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART));
-                views.setTextViewText(R.id.title_text, metadata.getText(MediaMetadata.METADATA_KEY_TITLE));
-                //views.setBoolean(R.id.title_text, "setSelected", true);
-                views.setTextViewText(R.id.artist_text, metadata.getString(MediaMetadata.METADATA_KEY_ARTIST));
-                views.setTextViewText(R.id.album_text, metadata.getString(MediaMetadata.METADATA_KEY_ALBUM));
+                Metadata newViewsMetadata = generateMetadataForViews();
+
+                if (newViewsMetadata.albumArtBitmap != null)
+                    views.setImageViewBitmap(R.id.album_art, newViewsMetadata.albumArtBitmap);
+                else
+                    views.setImageViewIcon(R.id.album_art, newViewsMetadata.albumArtIcon);
+
+                views.setTextViewText(R.id.title_text, newViewsMetadata.title);
+                views.setTextViewText(R.id.artist_text, newViewsMetadata.artist);
+                views.setTextViewText(R.id.album_text, newViewsMetadata.album);
+
+                currentViewsMetadata = newViewsMetadata;
             }
 
             if (updatePlayback){
@@ -188,7 +304,7 @@ public class MediaWidgetData {
         // Generates an Intent that will perform the specified action for the
         // widget with the given id
         Intent controllerActionIntent = new Intent(context, MediaWidgetProvider.class).setAction(WIDGET_ACTION);
-        controllerActionIntent.setData(new Uri.Builder().path(action).build());
+        controllerActionIntent.setData(new Uri.Builder().path(action).appendQueryParameter(WIDGET_ID, ""+appWidgetId).build());
         controllerActionIntent.putExtra(WIDGET_ID, appWidgetId);
         return PendingIntent.getBroadcast(context, 0, controllerActionIntent, 0);
     }

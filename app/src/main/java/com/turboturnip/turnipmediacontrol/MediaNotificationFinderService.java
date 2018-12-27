@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.drm.DrmStore;
 import android.media.MediaDataSource;
+import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
@@ -56,7 +57,7 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         public final StatusBarNotification notification;
         public final MediaController controller;
 
-        MediaNotification(StatusBarNotification notification,
+        public MediaNotification(StatusBarNotification notification,
                           MediaController controller) {
             this.notification = notification;
             this.controller = controller;
@@ -161,13 +162,26 @@ public class MediaNotificationFinderService extends NotificationListenerService 
             MediaSession.Token mediaSessionToken = ((MediaSession.Token)sbn.getNotification().extras.get(Notification.EXTRA_MEDIA_SESSION));
             if (mediaSessionToken != null)
                 tokenMap.put(mediaSessionToken, sbn);
+            else
+                Log.e("turnipmedia", "notification from" + sbn.getPackageName() + " has no mediasessiontoken");
+            if (sbn.getPackageName().equals("com.simplemobiletools.musicplayer")) {
+                Log.e("turnipmedia", "session token for simple player = " + mediaSessionToken);
+            }
         }
 
         for (MediaController controller : existingControllers) {
             StatusBarNotification associatedNotification = tokenMap.get(controller.getSessionToken());
-            if (associatedNotification != null)
+            if (associatedNotification != null &&
+                    controller.getMetadata() != null)
                 set.orderedMediaNotifications.add(new MediaNotification(associatedNotification, controller));
+            Log.e("turnipmedia", "mediasessiontoken " + controller.getSessionToken() + " on package " + controller.getPackageName());
         }
+
+        Log.e("turnipmedia", "[");
+        for (MediaNotification notification : set.orderedMediaNotifications) {
+            Log.e("turnipmedia", "\t" + notification.notification.getPackageName() + " - " + notification.controller.getSessionToken());
+        }
+        Log.e("turnipmedia", "]");
 
         //if (mediaNotifications.contains(currentSet.primaryMediaNotification))
         //    set.primaryMediaNotification = currentSet.primaryMediaNotification;
@@ -219,17 +233,30 @@ public class MediaNotificationFinderService extends NotificationListenerService 
                 }
                 if (newNotification == null) continue;
 
-                if (!newNotification.controller.getMetadata().equals(oldNotification.controller.getMetadata())) {
+                if (!Util.objectsEqual(newNotification.controller.getMetadata(), oldNotification.controller.getMetadata())) {
                     shouldUpdateListeners = shouldUpdateListeners | STATE_CHANGED;
                     break;
                 }
-                if (newNotification.controller.getPlaybackState().getState() != oldNotification.controller.getPlaybackState().getState()) {
+
+                if (!Util.objectsEqual(newNotification.notification.getNotification().extras, oldNotification.notification.getNotification().extras)){
+                    shouldUpdateListeners = shouldUpdateListeners | STATE_CHANGED;
+                    break;
+                }
+
+                PlaybackState oldPlaybackState = oldNotification.controller.getPlaybackState();
+                PlaybackState newPlaybackState = newNotification.controller.getPlaybackState();
+                if (oldPlaybackState == null && newPlaybackState == null) continue;
+                if (oldPlaybackState == null || newPlaybackState == null) {
+                    shouldUpdateListeners = shouldUpdateListeners | STATE_CHANGED;
+                    break;
+                }
+                if (newPlaybackState.getState() !=oldPlaybackState.getState()) {
                     shouldUpdateListeners = shouldUpdateListeners | STATE_CHANGED;
                     break;
                 }
             }
         }
-        Log.e("turnipmedia", "New: " + set + " Current: " + currentSet + " Will Update Listeners: " + shouldUpdateListeners);
+        Log.i("turnipmedia", "New: " + set + " Current: " + currentSet + " Will Update Listeners: " + shouldUpdateListeners);
 
         currentSet = set;
         return shouldUpdateListeners;
@@ -255,14 +282,19 @@ public class MediaNotificationFinderService extends NotificationListenerService 
 
     private void discoverMediaNotification(StatusBarNotification sbn){
         mediaNotifications.add(sbn);
+        Log.e("turnipmedia", "Discovered notification from " + sbn.getPackageName());
         queueReprioritize();
     }
     private void removeMediaNotification(StatusBarNotification sbn){
         mediaNotifications.remove(sbn);
+        Log.e("turnipmedia", "Threw away notification from " + sbn.getPackageName());
         queueReprioritize();
     }
     private boolean notificationIsMedia(StatusBarNotification sbn){
-        return Notification.CATEGORY_TRANSPORT.equals(sbn.getNotification().category);
+        boolean isMedia = Notification.CATEGORY_TRANSPORT.equals(sbn.getNotification().category);
+        if (!isMedia)
+            isMedia = sbn.getNotification().extras.get(Notification.EXTRA_MEDIA_SESSION) != null;
+        return isMedia;
     }
 
     @Override

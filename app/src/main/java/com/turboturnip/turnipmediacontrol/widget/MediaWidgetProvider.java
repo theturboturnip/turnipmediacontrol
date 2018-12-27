@@ -17,8 +17,12 @@ import android.widget.RemoteViews;
 import com.turboturnip.turnipmediacontrol.MediaNotificationFinderService;
 import com.turboturnip.turnipmediacontrol.R;
 
+import java.lang.reflect.Array;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,17 +52,21 @@ public class MediaWidgetProvider extends AppWidgetProvider {
         public void onUpdateOrder(MediaNotificationFinderService.MediaNotificationSet notificationSet) {
             Log.e("turnipmediawidget","Got " + notificationSet.orderedMediaNotifications.size() + " Notifications from onUpdateOrder");
             orderedNotifications = notificationSet.orderedMediaNotifications;
-            changedSinceLastUpdate = true;
+            orderChangedSinceLastUpdate = true;
         }
 
         // We don't care about state changes, those will be handled by MediaWidgetData
         @Override
-        public void onUpdateState(MediaNotificationFinderService.MediaNotificationSet notificationSet) {}
+        public void onUpdateState(MediaNotificationFinderService.MediaNotificationSet notificationSet) {
+            orderedNotifications = notificationSet.orderedMediaNotifications;
+            stateChangedSinceLastUpdate = true;
+        }
     };
 
     static boolean attached = false;
-    boolean shouldUpdate = false;
-    static boolean changedSinceLastUpdate = true;
+    static boolean shouldUpdate = false;
+    static boolean orderChangedSinceLastUpdate = true;
+    static boolean stateChangedSinceLastUpdate = false;
     Handler updateHandler = new Handler();
     long updateDelay = 250; // ms
 
@@ -119,11 +127,15 @@ public class MediaWidgetProvider extends AppWidgetProvider {
                 Loge("Failed to process a WIDGET_NOTIFICATION_ACTION with URI " + intent.getData());
             }
         } else if (WIDGET_ACTION.equals(intent.getAction())) {
-            int appWidgetId = intent.getIntExtra(WIDGET_ID, -1);
+            int appWidgetId = -1;//intent.getIntExtra(WIDGET_ID, -1);
             Uri intentData = intent.getData();
+            if (intentData != null)
+                appWidgetId = Integer.parseInt(intentData.getQueryParameter(WIDGET_ID));
             MediaWidgetData data = widgetIdToData.get(appWidgetId);
+            Loge("Widget action on " + appWidgetId + ", " + data);
             if (data != null && intentData != null && intentData.getPath() != null) {
                 int widgetNotificationIndex = indexOfNotificationWithId(data.selectedNotification.notification.getId());
+                Loge("Changing notification index, start: " + widgetNotificationIndex);
                 switch (intentData.getPath()) {
                     case WIDGET_SELECT_LEFT:
                         if (widgetNotificationIndex > 0)
@@ -136,6 +148,7 @@ public class MediaWidgetProvider extends AppWidgetProvider {
                     default:
                         Loge("Incorrect WIDGET_ACTION path " + intent.getData());
                 }
+                Loge("Changing notification index, end: " + widgetNotificationIndex);
                 AppWidgetManager appWidgetManager = context.getSystemService(AppWidgetManager.class);
                 MediaNotificationFinderService.MediaNotification newNotification = orderedNotifications.get(widgetNotificationIndex);
                 data.changeActiveNotification(context, appWidgetManager, newNotification);
@@ -149,16 +162,18 @@ public class MediaWidgetProvider extends AppWidgetProvider {
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         //Log.e("turnipmediawidget", "onUpdate");
         // There may be multiple widgets active, so update all of them
-        for (int appWidgetId : appWidgetIds) {
+        ArrayList<Integer> appWidgetIdsList = new ArrayList<>(appWidgetIds.length);
+        for (int i : appWidgetIds) appWidgetIdsList.add(i);
+        immediateUpdate(context, appWidgetManager, appWidgetIdsList);
+        /*for (int appWidgetId : appWidgetIds) {
             updateSingleWidget(context, appWidgetManager, appWidgetId);
-        }
+        }*/
 
         attachToNotificationFinder();
         if (!shouldUpdate) {
             shouldUpdate = true;
             queueUpdate(context);
         }
-        changedSinceLastUpdate = false;
     }
 
     @Override
@@ -202,9 +217,8 @@ public class MediaWidgetProvider extends AppWidgetProvider {
             @Override
             public void run() {
                 //Loge("update changed:" + changedSinceLastUpdate);
-                if (changedSinceLastUpdate) {
+                if (orderChangedSinceLastUpdate || stateChangedSinceLastUpdate) {
                     immediateUpdate(context, appWidgetManager);
-                    changedSinceLastUpdate = false;
                     //shouldUpdate = true;
                 }
                 if (shouldUpdate)
@@ -223,37 +237,47 @@ public class MediaWidgetProvider extends AppWidgetProvider {
     private void updateSingleWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
         MediaWidgetData data = widgetIdToData.get(appWidgetId);
         if (data == null) {
-            Loge("New Widget");
+            Loge("New Widget " + appWidgetId);
             data = new MediaWidgetData(appWidgetId);
             widgetIdToData.put(appWidgetId, data);
-            data.changeActiveNotification(context, appWidgetManager, null);
+            data.changeActiveNotification(context, appWidgetManager, orderedNotifications.size() > 0 ? orderedNotifications.get(0) : null);
         }
 
-        // If this widget was on the previous highest priority notification
-        if (previousOrderedNotifications.size() > 0 &&
-                MediaNotificationFinderService.MediaNotification.notificationsEqual(data.selectedNotification, previousOrderedNotifications.get(0))) {
-            // Swap to the new one
-            data.changeActiveNotification(context, appWidgetManager, orderedNotifications.size() > 0 ? orderedNotifications.get(0) : null);
-        } else if (data.selectedNotification != null) {
-            if (indexOfNotificationWithId(data.selectedNotification.notification.getId()) >= 0)
-                data.manualUpdate(context, appWidgetManager);
-            else
+        if (orderChangedSinceLastUpdate) {
+            // If this widget was on the previous highest priority notification
+            if (previousOrderedNotifications.size() > 0 &&
+                    MediaNotificationFinderService.MediaNotification.notificationsEqual(data.selectedNotification, previousOrderedNotifications.get(0))) {
+                // Swap to the new one
                 data.changeActiveNotification(context, appWidgetManager, orderedNotifications.size() > 0 ? orderedNotifications.get(0) : null);
-        } else if (orderedNotifications.size() > 0) {
-            data.changeActiveNotification(context, appWidgetManager, orderedNotifications.get(0));
+            } else if (data.selectedNotification != null) {
+                int indexInNew = indexOfNotificationWithId(data.selectedNotification.notification.getId());
+                if (indexInNew >= 0)
+                    data.updateActiveNotification(context, appWidgetManager, orderedNotifications.get(indexInNew), true);
+                else
+                    data.changeActiveNotification(context, appWidgetManager, orderedNotifications.size() > 0 ? orderedNotifications.get(0) : null);
+            } else if (orderedNotifications.size() > 0) {
+                data.changeActiveNotification(context, appWidgetManager, orderedNotifications.get(0));
+            }
+        }else if (stateChangedSinceLastUpdate) {
+            data.updateActiveNotification(context, appWidgetManager, orderedNotifications.get(indexOfNotificationWithId(data.selectedNotification.notification.getId())), false);
         }
     }
 
-    private void immediateUpdate(Context context, AppWidgetManager appWidgetManager) {
+    private void immediateUpdate(Context context, AppWidgetManager appWidgetManager, Iterable<Integer> widgetIds) {
         /*Intent updateWidget = new Intent(context, MediaWidgetProvider.class).setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
         updateWidget.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, AppWidgetManager.getInstance(context).getAppWidgetIds(new ComponentName(context, MediaWidgetProvider.class)));
         context.sendBroadcast(updateWidget);*/
-        Loge("immediateUpdate");
+        //Loge("immediateUpdate");s
 
-        for (Integer appWidgetId : widgetIdToData.keySet()) {
+        for (Integer appWidgetId : widgetIds) {
             updateSingleWidget(context, appWidgetManager, appWidgetId);
         }
         previousOrderedNotifications = orderedNotifications;
+        orderChangedSinceLastUpdate = false;
+        stateChangedSinceLastUpdate = false;
+    }
+    private void immediateUpdate(Context context, AppWidgetManager appWidgetManager) {
+        immediateUpdate(context, appWidgetManager, widgetIdToData.keySet());
     }
 
     @Override

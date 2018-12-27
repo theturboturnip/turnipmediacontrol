@@ -70,7 +70,10 @@ public class ListNotificationsActivity extends AppCompatActivity {
 
 
         for (MediaNotificationFinderService.MediaNotification secondaryNotification : notificationSet.orderedMediaNotifications) {
-            namesBuilder.append(secondaryNotification.notification.getPackageName()).append(':').append(secondaryNotification.controller.getMetadata().getString(MediaMetadata.METADATA_KEY_TITLE)).append('\n');
+            namesBuilder.append(secondaryNotification.notification.getPackageName()).append(':');
+            if (secondaryNotification.controller.getMetadata() != null)
+                namesBuilder.append(secondaryNotification.controller.getMetadata().getString(MediaMetadata.METADATA_KEY_TITLE));
+            namesBuilder.append('\n');
         }
 
         notificationListText.setText(namesBuilder.toString());
