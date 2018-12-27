@@ -74,16 +74,6 @@ public class MediaWidgetProvider extends AppWidgetProvider {
         Log.e("turnipmediawidget", "MediaWidgetProvider@" + System.identityHashCode(this) + " - " + msg);
     }
 
-    void setAppWidgetPlayPending(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
-        if (appWidgetId == -1) return;
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.media_widget);
-        views.setViewVisibility(R.id.play_pending, View.VISIBLE);
-        views.setImageViewResource(R.id.play_button, android.R.id.empty);
-        views.setOnClickPendingIntent(R.id.play_button, null);
-
-        appWidgetManager.partiallyUpdateAppWidget(appWidgetId, views);
-    }
-
     @Override
     public void onReceive(Context context, Intent intent) {
         //
