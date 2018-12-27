@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ripple xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:color="#f8000000"
+    android:color="#D7D7D7"
     tools:targetApi="lollipop">
+
+    <!-- From Material Design Website: 16% opacity of black on white. android:color="#29000000" -->
+    <!-- For visibility/visual consistency: 100 - 16% of white android:color="#D7D7D7" -->
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
-            <solid android:color="#f8000000" />
+            <solid android:color="#ffff0000" />
         </shape>
     </item>
 </ripple>

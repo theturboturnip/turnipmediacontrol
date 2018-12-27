@@ -124,60 +124,26 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:adjustViewBounds="true"
-                    android:background="@drawable/ripple"
-                    android:backgroundTint="@android:color/black"
-                    android:backgroundTintMode="src_atop"
-                    android:clickable="true"
-                    android:elevation="0dp"
-                    android:focusable="true"
+                    style="@style/RippleButton"
                     android:tint="@android:color/black"
-                    android:tintMode="multiply"
                     app:srcCompat="@drawable/ic_skip_previous_36dp" />
 
-                <RelativeLayout
-                    android:layout_width="36dp"
+                <ImageButton
+                    android:id="@+id/play_button"
+                    style="@style/RippleButton"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1">
-
-                    <ProgressBar
-                        android:id="@+id/play_pending"
-                        style="?android:attr/progressBarStyle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:indeterminateTint="#000"
-                        android:indeterminateTintMode="src_atop"
-                        android:visibility="visible" />
-
-                    <ImageButton
-                        android:id="@+id/play_button"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:adjustViewBounds="true"
-                        android:background="@drawable/ripple"
-                        android:backgroundTint="@android:color/black"
-                        android:clickable="true"
-                        android:elevation="0dp"
-                        android:focusable="true"
-                        android:tint="@android:color/black"
-                        android:tintMode="multiply"
-                        android:visibility="visible"
-                        app:srcCompat="@drawable/ic_play_arrow_36dp" />
-                </RelativeLayout>
+                    android:layout_weight="1"
+                    android:tint="@android:color/black"
+                    app:srcCompat="@drawable/ic_play_arrow_36dp"/>
 
                 <ImageButton
                     android:id="@+id/skip_next_button"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:adjustViewBounds="true"
-                    android:background="@drawable/ripple"
-                    android:backgroundTint="@android:color/black"
-                    android:clickable="true"
-                    android:elevation="0dp"
-                    android:focusable="true"
+                    style="@style/RippleButton"
                     android:tint="@android:color/black"
-                    android:tintMode="multiply"
                     app:srcCompat="@drawable/ic_skip_next_36dp" />
             </LinearLayout>
         </RelativeLayout>
