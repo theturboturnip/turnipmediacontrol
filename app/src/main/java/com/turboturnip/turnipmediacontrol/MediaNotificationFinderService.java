@@ -291,10 +291,7 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         queueReprioritize();
     }
     private boolean notificationIsMedia(StatusBarNotification sbn){
-        boolean isMedia = Notification.CATEGORY_TRANSPORT.equals(sbn.getNotification().category);
-        if (!isMedia)
-            isMedia = sbn.getNotification().extras.get(Notification.EXTRA_MEDIA_SESSION) != null;
-        return isMedia;
+        return sbn.getNotification().extras.get(Notification.EXTRA_MEDIA_SESSION) != null;
     }
 
     @Override
