@@ -291,7 +291,8 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         queueReprioritize();
     }
     private boolean notificationIsMedia(StatusBarNotification sbn){
-        return sbn.getNotification().extras.get(Notification.EXTRA_MEDIA_SESSION) != null;
+        return sbn.getNotification().extras.get(Notification.EXTRA_MEDIA_SESSION) != null
+                || Notification.CATEGORY_TRANSPORT.equals(sbn.getNotification().category);
     }
 
     @Override

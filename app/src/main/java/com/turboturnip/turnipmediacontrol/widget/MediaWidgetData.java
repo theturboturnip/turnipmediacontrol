@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.drawable.Icon;
 import android.media.MediaMetadata;
 import android.media.session.MediaController;
@@ -24,16 +25,12 @@ import com.turboturnip.turnipmediacontrol.Util;
 
 import static com.turboturnip.turnipmediacontrol.widget.MediaWidgetProvider.*;
 
-/*
-Known issue: ViewState generated from the notification instead of the controller will not update
-This is because of stuff
- */
 public class MediaWidgetData {
-    final int appWidgetId;
-    boolean hasSetNotification = false;
+    private final int appWidgetId;
+    private boolean hasSetNotification = false;
     MediaNotificationFinderService.MediaNotification selectedNotification;
 
-    static final String[] notificationTextPriority = new String[] {
+    private static final String[] notificationTextPriority = new String[] {
             Notification.EXTRA_TITLE_BIG,
             Notification.EXTRA_TITLE,
             Notification.EXTRA_BIG_TEXT,
@@ -112,32 +109,18 @@ public class MediaWidgetData {
             return "[ViewState "+ metadata.title + " " + metadata.artist + " " + metadata.album + "]";
         }
     }
-    ViewState currentViewState = null;
-    //private MediaNotificationFinderService.MediaNotification oldPrimaryNotification = null;
-    /*private MediaNotificationFinderService.Interface notificationFinderInterface  = new MediaNotificationFinderService.Interface() {
-        @Override
-        public void updateNotificationSet(MediaNotificationFinderService.MediaNotificationSet notificationSet) {
-            if (notificationSet.orderedMediaNotifications.size() > 0) {
-                if (MediaNotificationFinderService.MediaNotification.notificationsEqual(selectedNotification, oldPrimaryNotification)
-                        && context != null && appWidgetManager != null) {
-                    changeActiveNotification(context, appWidgetManager, notificationSet.orderedMediaNotifications.get(0));
-                }
-                oldPrimaryNotification = notificationSet.orderedMediaNotifications.get(0);
-            }else{
-                oldPrimaryNotification = null;
-            }
-        }
-    };*/
+    private ViewState currentViewState = null;
 
-    public MediaWidgetData(int appWidgetId) {
+    private MediaWidgetTheme theme =
+            new MediaWidgetTheme(Color.argb(128, 0,0,0));
+            //new MediaWidgetTheme(Color.rgb(255,255,255));
+            //new MediaWidgetTheme(Color.rgb(255,0,0));
+
+    MediaWidgetData(int appWidgetId) {
         this.appWidgetId = appWidgetId;
-        //MediaNotificationFinderService.attachInterface(notificationFinderInterface);
-    }
-    public void onDestroy() {
-        //MediaNotificationFinderService.detachInterface(notificationFinderInterface);
     }
 
-    public void changeActiveNotification(Context context, AppWidgetManager appWidgetManager, MediaNotificationFinderService.MediaNotification newSelectedNotification) {
+    void changeActiveNotification(Context context, AppWidgetManager appWidgetManager, MediaNotificationFinderService.MediaNotification newSelectedNotification) {
         if (hasSetNotification && MediaNotificationFinderService.MediaNotification.notificationsEqual(selectedNotification, newSelectedNotification))
             return;
 
@@ -152,27 +135,19 @@ public class MediaWidgetData {
         hasSetNotification = true;
     }
 
-    public void updateActiveNotification(Context context, AppWidgetManager appWidgetManager, MediaNotificationFinderService.MediaNotification newSelectedNotification, boolean forceUpdate) {
+    void updateActiveNotification(Context context, AppWidgetManager appWidgetManager, MediaNotificationFinderService.MediaNotification newSelectedNotification) {
         if (selectedNotification == null) return;
         if (!hasSetNotification) return;
         if (!MediaNotificationFinderService.MediaNotification.notificationsEqual(selectedNotification, newSelectedNotification)) {
             throw new RuntimeException("Tried to updateActiveNotification with nonmatching notification");
         }
 
-        /*if (selectedNotification != null) {
-            selectedNotification.controller.unregisterCallback(controllerCallback);
-            newSelectedNotification.controller.registerCallback(controllerCallback);
-        }*/
-        //Log.e("turnipmediawidget", "Updated notification to new one");
         selectedNotification = new MediaNotificationFinderService.MediaNotification(newSelectedNotification.notification, selectedNotification.controller);
 
-        this.context = context;
-        this.appWidgetManager = appWidgetManager;
-
-        generateViews();
+        manualUpdate(context, appWidgetManager);
     }
 
-    public void manualUpdate(Context context, AppWidgetManager appWidgetManager) {
+    private void manualUpdate(Context context, AppWidgetManager appWidgetManager) {
         this.context = context;
         this.appWidgetManager = appWidgetManager;
 
@@ -216,7 +191,6 @@ public class MediaWidgetData {
             resultViewState.metadata.albumArtIcon = selectedNotification.notification.getNotification().getLargeIcon();
             if (resultViewState.metadata.albumArtIcon == null)
                 resultViewState.metadata.albumArtIcon = selectedNotification.notification.getNotification().getSmallIcon();
-
         }
 
         resultViewState.playing = selectedNotification.controller.getPlaybackState().getState() == PlaybackState.STATE_PLAYING;
@@ -230,7 +204,6 @@ public class MediaWidgetData {
         resultViewState.navLeft = selectedNotificationIndex > 0;
         resultViewState.navRight = selectedNotificationIndex < orderedNotifications.size() - 1;
 
-        //Log.e("turnipmediametadata", resultViewState.toString());
         return resultViewState;
     }
 
@@ -242,7 +215,6 @@ public class MediaWidgetData {
 
         RemoteViews views;
         if (selectedNotification != null) {
-            //MediaWidgetProvider.Loge("Updating widget as notificatoin");
             views = new RemoteViews(context.getPackageName(), R.layout.media_widget);
 
             boolean updateMetadata = shouldPushFullUpdate || !Util.objectsEqual(currentViewState.metadata, newViewState.metadata);
@@ -251,6 +223,8 @@ public class MediaWidgetData {
 
             shouldPushPartialUpdate = updateMetadata || updatePlayback || updateNav;
 
+            views.setInt(R.id.content, "setBackgroundColor", theme.backgroundColor);
+
             if (updateMetadata){
                 if (newViewState.metadata.albumArtBitmap != null)
                     views.setImageViewBitmap(R.id.album_art, newViewState.metadata.albumArtBitmap);
@@ -258,20 +232,26 @@ public class MediaWidgetData {
                     views.setImageViewIcon(R.id.album_art, newViewState.metadata.albumArtIcon);
 
                 views.setTextViewText(R.id.title_text, newViewState.metadata.title);
+                views.setTextColor(R.id.title_text, theme.standoutColor);
                 views.setTextViewText(R.id.artist_text, newViewState.metadata.artist);
+                views.setTextColor(R.id.artist_text, theme.standoutColor);
                 views.setTextViewText(R.id.album_text, newViewState.metadata.album);
+                views.setTextColor(R.id.album_text, theme.standoutColor);
             }
 
             if (updatePlayback){
                 views.setViewVisibility(R.id.play_button, View.VISIBLE);
                 views.setImageViewResource(R.id.play_button, newViewState.playing ? R.drawable.ic_pause_36dp : R.drawable.ic_play_arrow_36dp);
                 views.setOnClickPendingIntent(R.id.play_button, generatePlayPausePendingIntent(context, newViewState.playing, selectedNotification, appWidgetId));
+                views.setInt(R.id.play_button, "setColorFilter", theme.standoutColor);
 
                 views.setImageViewResource(R.id.skip_next_button, R.drawable.ic_skip_next_36dp);
                 views.setOnClickPendingIntent(R.id.skip_next_button, generateSkipNextPendingIntent(context, selectedNotification, appWidgetId));
+                views.setInt(R.id.skip_next_button, "setColorFilter", theme.standoutColor);
 
                 views.setImageViewResource(R.id.skip_previous_button, R.drawable.ic_skip_previous_36dp);
                 views.setOnClickPendingIntent(R.id.skip_previous_button, generateSkipPreviousPendingIntent(context, selectedNotification, appWidgetId));
+                views.setInt(R.id.skip_previous_button, "setColorFilter", theme.standoutColor);
             }
 
             if (updateNav){
@@ -279,6 +259,8 @@ public class MediaWidgetData {
                     views.setViewVisibility(R.id.nav_left, View.VISIBLE);
                     views.setOnClickPendingIntent(R.id.nav_left, generateWidgetActionIntent(context, WIDGET_SELECT_LEFT, appWidgetId));
                     views.setImageViewResource(R.id.nav_left, R.drawable.ic_chevron_left_24dp);
+                    views.setInt(R.id.nav_left, "setColorFilter", theme.standoutColor);
+                    views.setInt(R.id.nav_left, "setBackgroundColor", theme.mutedBackgroundColor);
                 } else {
                     views.setViewVisibility(R.id.nav_left, View.GONE);
                 }
@@ -287,6 +269,8 @@ public class MediaWidgetData {
                     views.setViewVisibility(R.id.nav_right, View.VISIBLE);
                     views.setOnClickPendingIntent(R.id.nav_right, generateWidgetActionIntent(context, WIDGET_SELECT_RIGHT, appWidgetId));
                     views.setImageViewResource(R.id.nav_right, R.drawable.ic_chevron_right_24dp);
+                    views.setInt(R.id.nav_right, "setColorFilter", theme.standoutColor);
+                    views.setInt(R.id.nav_right, "setBackgroundColor", theme.mutedBackgroundColor);
                 } else {
                     views.setViewVisibility(R.id.nav_right, View.GONE);
                 }
@@ -294,7 +278,7 @@ public class MediaWidgetData {
         } else {
             // Handle switching from some notification to no notification
             views = new RemoteViews(context.getPackageName(), R.layout.speed_dial_widget);
-            //views.setOnClickPendingIntent(R.id.refresh_button, generateUpdateWidgetPendingIntent(context, appWidgetId));
+            views.setInt(R.id.content, "setBackgroundColor", theme.backgroundColor);
         }
 
         if (shouldPushFullUpdate) {
@@ -304,19 +288,12 @@ public class MediaWidgetData {
         }
         currentViewState = newViewState;
     }
-    PendingIntent generateUpdateWidgetPendingIntent(Context context, int appWidgetId) {
-        Intent updateWidget = new Intent(context, MediaWidgetProvider.class).setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-        updateWidget.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, new int[]{appWidgetId});
-        return PendingIntent.getBroadcast(context, 1, updateWidget, 0);
-    }
+
     private PendingIntent generatePlayPausePendingIntent(Context context, boolean playing, MediaNotificationFinderService.MediaNotification notification, int appWidgetId) {
-        Intent intent = generateNotificationActionIntent(context, playing ? ACTION_PAUSE : ACTION_PLAY, notification.notification.getId(), appWidgetId);
-        PendingIntent newPendingIntent =  PendingIntent.getBroadcast(context,
+        return PendingIntent.getBroadcast(context,
                 0,
-                intent,
+                generateNotificationActionIntent(context, playing ? ACTION_PAUSE : ACTION_PLAY, notification.notification.getId(), appWidgetId),
                 0);
-        //Loge("turnipmediawidget", "Generated pendingintent for notification: " + newPendingIntent + " data: " + intent.getData());
-        return newPendingIntent;
     }
     private PendingIntent generateSkipNextPendingIntent(Context context, MediaNotificationFinderService.MediaNotification notification, int appWidgetId) {
         return PendingIntent.getBroadcast(context,

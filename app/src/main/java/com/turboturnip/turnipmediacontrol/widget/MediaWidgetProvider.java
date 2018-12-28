@@ -150,14 +150,10 @@ public class MediaWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        //Log.e("turnipmediawidget", "onUpdate");
         // There may be multiple widgets active, so update all of them
         ArrayList<Integer> appWidgetIdsList = new ArrayList<>(appWidgetIds.length);
         for (int i : appWidgetIds) appWidgetIdsList.add(i);
         immediateUpdate(context, appWidgetManager, appWidgetIdsList);
-        /*for (int appWidgetId : appWidgetIds) {
-            updateSingleWidget(context, appWidgetManager, appWidgetId);
-        }*/
 
         attachToNotificationFinder();
         if (!shouldUpdate) {
@@ -172,9 +168,6 @@ public class MediaWidgetProvider extends AppWidgetProvider {
         // When the user deletes the widget, delete the preference associated with it.
         for (int appWidgetId : appWidgetIds) {
             MediaWidgetConfigureActivity.deleteTitlePref(context, appWidgetId);
-            MediaWidgetData associatedData = widgetIdToData.get(appWidgetId);
-            if (associatedData != null)
-                associatedData.onDestroy();
             widgetIdToData.remove(appWidgetId);
         }
     }
@@ -206,10 +199,8 @@ public class MediaWidgetProvider extends AppWidgetProvider {
         updateHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                //Loge("update changed:" + changedSinceLastUpdate);
                 if (orderChangedSinceLastUpdate || stateChangedSinceLastUpdate) {
                     immediateUpdate(context, appWidgetManager);
-                    //shouldUpdate = true;
                 }
                 if (shouldUpdate)
                     updateHandler.postDelayed(this, updateDelay);
@@ -242,23 +233,18 @@ public class MediaWidgetProvider extends AppWidgetProvider {
             } else if (data.selectedNotification != null) {
                 int indexInNew = indexOfNotificationWithId(data.selectedNotification.notification.getId());
                 if (indexInNew >= 0)
-                    data.updateActiveNotification(context, appWidgetManager, orderedNotifications.get(indexInNew), true);
+                    data.updateActiveNotification(context, appWidgetManager, orderedNotifications.get(indexInNew));
                 else
                     data.changeActiveNotification(context, appWidgetManager, orderedNotifications.size() > 0 ? orderedNotifications.get(0) : null);
             } else if (orderedNotifications.size() > 0) {
                 data.changeActiveNotification(context, appWidgetManager, orderedNotifications.get(0));
             }
         }else if (stateChangedSinceLastUpdate) {
-            data.updateActiveNotification(context, appWidgetManager, orderedNotifications.get(indexOfNotificationWithId(data.selectedNotification.notification.getId())), false);
+            data.updateActiveNotification(context, appWidgetManager, orderedNotifications.get(indexOfNotificationWithId(data.selectedNotification.notification.getId())));
         }
     }
 
     private void immediateUpdate(Context context, AppWidgetManager appWidgetManager, Iterable<Integer> widgetIds) {
-        /*Intent updateWidget = new Intent(context, MediaWidgetProvider.class).setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-        updateWidget.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, AppWidgetManager.getInstance(context).getAppWidgetIds(new ComponentName(context, MediaWidgetProvider.class)));
-        context.sendBroadcast(updateWidget);*/
-        //Loge("immediateUpdate");s
-
         for (Integer appWidgetId : widgetIds) {
             updateSingleWidget(context, appWidgetManager, appWidgetId);
         }
