@@ -36,15 +36,20 @@ import org.json.JSONObject;
 import org.json.JSONStringer;
 import org.json.JSONTokener;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
+// TODO: BUG: This doesn't throw away old notifications anymore
+// Might be the service, might be the widget
 public class MediaNotificationFinderService extends NotificationListenerService implements MediaSessionManager.OnActiveSessionsChangedListener {
 
     public static final int MSG_REQUEST_NOTIFICATION_LIST = 1;
@@ -115,7 +120,7 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         void onUpdateOrder(MediaNotificationSet notificationSet);
         void onUpdateState(MediaNotificationSet notificationSet);
     }
-    private static Set<Interface> interfaces = new HashSet<>();
+    private static Set<Interface> interfaces = Collections.newSetFromMap(new WeakHashMap<>());
 
     private static MediaSessionManager sessionManager;
     private static ComponentName componentName;
@@ -269,6 +274,7 @@ public class MediaNotificationFinderService extends NotificationListenerService 
                 int reprioritizeResult = reprioritize();
                 if (reprioritizeResult != 0) {
                     for (Interface i : interfaces) {
+
                         if ((reprioritizeResult & POSITIONS_CHANGED) != 0)
                             i.onUpdateOrder(currentSet);
                         if ((reprioritizeResult & STATE_CHANGED) != 0)

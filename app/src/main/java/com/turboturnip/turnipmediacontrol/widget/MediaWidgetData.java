@@ -23,8 +23,6 @@ import com.turboturnip.turnipmediacontrol.MediaNotificationFinderService;
 import com.turboturnip.turnipmediacontrol.R;
 import com.turboturnip.turnipmediacontrol.Util;
 
-import static com.turboturnip.turnipmediacontrol.widget.MediaWidgetProvider.*;
-
 public class MediaWidgetData {
     private final int appWidgetId;
     private boolean hasSetNotification = false;
@@ -39,21 +37,19 @@ public class MediaWidgetData {
             Notification.EXTRA_INFO_TEXT
     };
 
-    private Context context;
-    private AppWidgetManager appWidgetManager;
     private MediaController.Callback controllerCallback = new MediaController.Callback() {
         @Override
         public void onPlaybackStateChanged(@Nullable PlaybackState state) {
             super.onPlaybackStateChanged(state);
-            if (appWidgetManager != null)
-                generateViews();
+            if (MediaWidgetSet.instance.context.get() != null)
+                generateViews(MediaWidgetSet.instance.context.get(), MediaWidgetSet.instance.appWidgetManager);
         }
 
         @Override
         public void onMetadataChanged(@Nullable MediaMetadata metadata) {
             super.onMetadataChanged(metadata);
-            if (appWidgetManager != null)
-                generateViews();
+            if (MediaWidgetSet.instance.context.get() != null)
+                generateViews(MediaWidgetSet.instance.context.get(), MediaWidgetSet.instance.appWidgetManager, true);
         }
     };
 
@@ -69,10 +65,10 @@ public class MediaWidgetData {
                     return false;
 
                 Metadata other = (Metadata)obj;
-                if (!Util.objectsEqual(albumArtBitmap, other.albumArtBitmap))
-                    return false;
-                if (!Util.objectsEqual(albumArtIcon, other.albumArtIcon))
-                    return false;
+                //if (!Util.objectsEqual(albumArtBitmap, other.albumArtBitmap))
+                //    return false;
+                //if (!Util.objectsEqual(albumArtIcon, other.albumArtIcon))
+                //    return false;
                 if (!Util.objectsEqual(title, other.title))
                     return false;
                 if (!Util.objectsEqual(artist, other.artist))
@@ -116,6 +112,18 @@ public class MediaWidgetData {
             //new MediaWidgetTheme(Color.rgb(255,255,255));
             //new MediaWidgetTheme(Color.rgb(255,0,0));
 
+    //static final String WIDGET_NOTIFICATION_ACTION = "com.turboturnip.turnipmediacontrol.WIDGET_NOTIFICATION_ACTION";
+    static final String WIDGET_ACTION = "com.turboturnip.turnipmediacontrol.WIDGET_ACTION";
+    //static final String TARGET_NOTIFICATION_ID = "com.turboturnip.turnipmediacontrol.TARGET_NOTIFICATION_ID";
+    static final String WIDGET_ID = "com.turboturnip.turnipmediacontrol.WIDGET_ID";
+    static final String ACTION_PLAY = "play";
+    static final String ACTION_PAUSE = "pause";
+    static final String ACTION_SKIP_NEXT = "skipnext";
+    static final String ACTION_SKIP_PREVIOUS = "skipprev";
+    static final String ACTION_SELECT_LEFT = "selectleft";
+    static final String ACTION_SELECT_RIGHT = "selectright";
+
+
     MediaWidgetData(int appWidgetId) {
         this.appWidgetId = appWidgetId;
     }
@@ -148,12 +156,9 @@ public class MediaWidgetData {
     }
 
     private void manualUpdate(Context context, AppWidgetManager appWidgetManager) {
-        this.context = context;
-        this.appWidgetManager = appWidgetManager;
-
         Log.e("turnipmediawidget", "Full Update");
 
-        generateViews();
+        generateViews(context, appWidgetManager);
     }
 
     private ViewState generateViewState() {
@@ -195,19 +200,17 @@ public class MediaWidgetData {
 
         resultViewState.playing = selectedNotification.controller.getPlaybackState().getState() == PlaybackState.STATE_PLAYING;
 
-        int selectedNotificationIndex;
-        for (selectedNotificationIndex = 0; selectedNotificationIndex < orderedNotifications.size(); selectedNotificationIndex++) {
-            if (orderedNotifications.get(selectedNotificationIndex).notification.getId() == selectedNotification.notification.getId()){
-                break;
-            }
-        }
+        int selectedNotificationIndex = MediaWidgetSet.instance.indexOfMatchingNotification(selectedNotification);
         resultViewState.navLeft = selectedNotificationIndex > 0;
-        resultViewState.navRight = selectedNotificationIndex < orderedNotifications.size() - 1;
+        resultViewState.navRight = selectedNotificationIndex < MediaWidgetSet.instance.orderedNotifications.size() - 1;
 
         return resultViewState;
     }
 
-    private void generateViews() {
+    private void generateViews(Context context, AppWidgetManager appWidgetManager){
+        generateViews(context, appWidgetManager, false);
+    }
+    private void generateViews(Context context, AppWidgetManager appWidgetManager, boolean forceUpdateMetadata) {
         ViewState newViewState = generateViewState();
 
         boolean shouldPushFullUpdate = currentViewState == null || currentViewState.hasSong != newViewState.hasSong;
@@ -217,7 +220,7 @@ public class MediaWidgetData {
         if (selectedNotification != null) {
             views = new RemoteViews(context.getPackageName(), R.layout.media_widget);
 
-            boolean updateMetadata = shouldPushFullUpdate || !Util.objectsEqual(currentViewState.metadata, newViewState.metadata);
+            boolean updateMetadata = shouldPushFullUpdate || forceUpdateMetadata || !Util.objectsEqual(currentViewState.metadata, newViewState.metadata);
             boolean updatePlayback = shouldPushFullUpdate || currentViewState.playing != newViewState.playing;
             boolean updateNav = shouldPushFullUpdate || currentViewState.navLeft != newViewState.navLeft || currentViewState.navRight != newViewState.navRight;
 
@@ -242,22 +245,22 @@ public class MediaWidgetData {
             if (updatePlayback){
                 views.setViewVisibility(R.id.play_button, View.VISIBLE);
                 views.setImageViewResource(R.id.play_button, newViewState.playing ? R.drawable.ic_pause_36dp : R.drawable.ic_play_arrow_36dp);
-                views.setOnClickPendingIntent(R.id.play_button, generatePlayPausePendingIntent(context, newViewState.playing, selectedNotification, appWidgetId));
+                views.setOnClickPendingIntent(R.id.play_button, generatePlayPausePendingIntent(context, newViewState.playing));
                 views.setInt(R.id.play_button, "setColorFilter", theme.standoutColor);
 
                 views.setImageViewResource(R.id.skip_next_button, R.drawable.ic_skip_next_36dp);
-                views.setOnClickPendingIntent(R.id.skip_next_button, generateSkipNextPendingIntent(context, selectedNotification, appWidgetId));
+                views.setOnClickPendingIntent(R.id.skip_next_button, generateSkipNextPendingIntent(context));
                 views.setInt(R.id.skip_next_button, "setColorFilter", theme.standoutColor);
 
                 views.setImageViewResource(R.id.skip_previous_button, R.drawable.ic_skip_previous_36dp);
-                views.setOnClickPendingIntent(R.id.skip_previous_button, generateSkipPreviousPendingIntent(context, selectedNotification, appWidgetId));
+                views.setOnClickPendingIntent(R.id.skip_previous_button, generateSkipPreviousPendingIntent(context));
                 views.setInt(R.id.skip_previous_button, "setColorFilter", theme.standoutColor);
             }
 
             if (updateNav){
                 if (newViewState.navLeft) {
                     views.setViewVisibility(R.id.nav_left, View.VISIBLE);
-                    views.setOnClickPendingIntent(R.id.nav_left, generateWidgetActionIntent(context, WIDGET_SELECT_LEFT, appWidgetId));
+                    views.setOnClickPendingIntent(R.id.nav_left, generateActionIntent(context, ACTION_SELECT_LEFT));
                     views.setImageViewResource(R.id.nav_left, R.drawable.ic_chevron_left_24dp);
                     views.setInt(R.id.nav_left, "setColorFilter", theme.standoutColor);
                     views.setInt(R.id.nav_left, "setBackgroundColor", theme.mutedBackgroundColor);
@@ -267,7 +270,7 @@ public class MediaWidgetData {
 
                 if (newViewState.navRight) {
                     views.setViewVisibility(R.id.nav_right, View.VISIBLE);
-                    views.setOnClickPendingIntent(R.id.nav_right, generateWidgetActionIntent(context, WIDGET_SELECT_RIGHT, appWidgetId));
+                    views.setOnClickPendingIntent(R.id.nav_right, generateActionIntent(context, ACTION_SELECT_RIGHT));
                     views.setImageViewResource(R.id.nav_right, R.drawable.ic_chevron_right_24dp);
                     views.setInt(R.id.nav_right, "setColorFilter", theme.standoutColor);
                     views.setInt(R.id.nav_right, "setBackgroundColor", theme.mutedBackgroundColor);
@@ -289,38 +292,23 @@ public class MediaWidgetData {
         currentViewState = newViewState;
     }
 
-    private PendingIntent generatePlayPausePendingIntent(Context context, boolean playing, MediaNotificationFinderService.MediaNotification notification, int appWidgetId) {
-        return PendingIntent.getBroadcast(context,
-                0,
-                generateNotificationActionIntent(context, playing ? ACTION_PAUSE : ACTION_PLAY, notification.notification.getId(), appWidgetId),
-                0);
+    private PendingIntent generatePlayPausePendingIntent(Context context, boolean playing) {
+        return generateActionIntent(context, playing ? ACTION_PAUSE : ACTION_PLAY);
     }
-    private PendingIntent generateSkipNextPendingIntent(Context context, MediaNotificationFinderService.MediaNotification notification, int appWidgetId) {
-        return PendingIntent.getBroadcast(context,
-                0,
-                generateNotificationActionIntent(context, ACTION_SKIP_NEXT, notification.notification.getId(), appWidgetId),
-                0);
+    private PendingIntent generateSkipNextPendingIntent(Context context) {
+        return generateActionIntent(context, ACTION_SKIP_NEXT);
     }
-    private PendingIntent generateSkipPreviousPendingIntent(Context context, MediaNotificationFinderService.MediaNotification notification, int appWidgetId) {
-        return PendingIntent.getBroadcast(context,
-                0,
-                generateNotificationActionIntent(context, ACTION_SKIP_PREVIOUS, notification.notification.getId(), appWidgetId),
-                0);
+    private PendingIntent generateSkipPreviousPendingIntent(Context context) {
+        return generateActionIntent(context, ACTION_SKIP_PREVIOUS);
     }
-    private static Intent generateNotificationActionIntent(Context context, String action, int notificationId, int appWidgetId) {
+    private PendingIntent generateActionIntent(Context context, String action) {
         // Generates an Intent that will perform the specified action for the
         // controller paired to a notification with the given id
-        Intent controllerActionIntent = new Intent(context, MediaWidgetProvider.class).setAction(WIDGET_NOTIFICATION_ACTION);
-        controllerActionIntent.setData(new Uri.Builder().path(action).appendQueryParameter(TARGET_NOTIFICATION_ID, ""+notificationId).build());
-        controllerActionIntent.putExtra(WIDGET_ID, appWidgetId);
-        return controllerActionIntent;
-    }
-    private static PendingIntent generateWidgetActionIntent(Context context, String action, int appWidgetId) {
-        // Generates an Intent that will perform the specified action for the
-        // widget with the given id
         Intent controllerActionIntent = new Intent(context, MediaWidgetProvider.class).setAction(WIDGET_ACTION);
         controllerActionIntent.setData(new Uri.Builder().path(action).appendQueryParameter(WIDGET_ID, ""+appWidgetId).build());
-        controllerActionIntent.putExtra(WIDGET_ID, appWidgetId);
-        return PendingIntent.getBroadcast(context, 0, controllerActionIntent, 0);
+        return PendingIntent.getBroadcast(context,
+                0,
+                controllerActionIntent,
+                0);
     }
 }

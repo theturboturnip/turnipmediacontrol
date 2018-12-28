@@ -1,16 +1,20 @@
 package com.turboturnip.turnipmediacontrol.widget;
 
 import android.graphics.Color;
+import android.support.annotation.ColorInt;
 import android.util.Log;
 
 import com.turboturnip.turnipmediacontrol.Util;
 
 public class MediaWidgetTheme {
     // Used for the widget background
+    @ColorInt
     public final int backgroundColor;
     // Used for the text and buttons
+    @ColorInt
     public final int standoutColor;
     // Used for the navigation button backgrounds
+    @ColorInt
     public final int mutedBackgroundColor;
 
     public MediaWidgetTheme(int backgroundColor) {
@@ -27,27 +31,38 @@ public class MediaWidgetTheme {
         this.mutedBackgroundColor = mutedBackgroundColor;
     }
 
+    @ColorInt
     private static int generateStandoutColor(int backgroundColor) {
         // Take brightness of background, generate either white or black
 
         // Get "perceived" brightness using technique found here: http://alienryderflex.com/hsp.html
         int perceivedBrightness = Util.getPerceivedBrightness(backgroundColor);
         int inverseBrightness = Util.getInverseBrightness(perceivedBrightness);
-        Log.i("turnipmediacolor", "Perceived Brightness of " + backgroundColor + ": " + perceivedBrightness + " inverse: " + inverseBrightness);
+        //Log.i("turnipmediacolor", "Perceived Brightness of " + backgroundColor + ": " + perceivedBrightness + " inverse: " + inverseBrightness);
 
         // Disregard alpha here, standout stuff should always be visible
         return Color.rgb(inverseBrightness, inverseBrightness, inverseBrightness);
     }
+    @ColorInt
     private static int generateMutedColor(int source, int standout) {
-        // channel-relative interpolation between source and standout
-        float factor = 1 - Util.inverseTippingRatio;
-        int r = Math.round(lerp(Color.red(source), Color.red(standout), factor));
-        int g = Math.round(lerp(Color.green(source), Color.green(standout), factor));
-        int b = Math.round(lerp(Color.blue(source), Color.blue(standout), factor));
-        Log.i("turnipmediacolor", "muted " + r + " " + g + " " + b);
+        int r,g,b,a = 255;
+        if (Color.alpha(source) < 200) {
+            r = Color.red(source);
+            g = Color.green(source);
+            b = Color.blue(source);
+            a = Math.round(lerp(Color.alpha(source), 255, 0.75f));
+        } else {
+            // channel-relative interpolation between source and standout
+            float factor = 1 - Util.inverseTippingRatio;
+            r = Math.round(lerp(Color.red(source), Color.red(standout), factor));
+            g = Math.round(lerp(Color.green(source), Color.green(standout), factor));
+            b = Math.round(lerp(Color.blue(source), Color.blue(standout), factor));
+            //int a = Math.round(lerp(Color.alpha(source), Color.alpha(standout), factor));
+        }
+        Log.i("turnipmediacolor", "muted " + a + " " + r + " " + g + " " + b);
 
         // TODO: Figure out alpha for this
-        return Color.argb(255, r, g, b);
+        return Color.argb(a, r, g, b);
         // Pick a color with the same hue/saturation as the source but with a brightness 25% between it and it's inverse
         // Use HSV because manually writing out the HSP calculations is boring
         /*float[] hsv = new float[3];
@@ -93,8 +108,8 @@ public class MediaWidgetTheme {
         return newColor;*/
     }
     private static float lerp(float a, float b, float c){
-        Log.i("turnipmediacolor", "lerp: " + a + " -> " + b + "  by " + c);
-        Log.i("turnipmediacolor", "lerp: " + a + " + " + ((b -a) * c));
+        //Log.i("turnipmediacolor", "lerp: " + a + " -> " + b + "  by " + c);
+        //Log.i("turnipmediacolor", "lerp: " + a + " + " + ((b -a) * c));
         return a + ((b - a) * c);
     }
 }
