@@ -52,7 +52,6 @@ public class MediaWidgetSet {
     ComponentName providerComponentName = null;
 
     private MediaWidgetSet() {
-        MediaNotificationFinderService.attachInterface(notificationWatcher);
     }
 
     private boolean updateQueued = false;
@@ -80,6 +79,7 @@ public class MediaWidgetSet {
     }
 
     public void updateContext(@NonNull Context context) {
+        MediaNotificationFinderService.attachInterface(notificationWatcher);
         if (this.context.get() != null)
             return;
 
@@ -194,8 +194,8 @@ public class MediaWidgetSet {
             } else if (orderedNotifications.size() > 0) {
                 data.changeActiveNotification(context.get(), appWidgetManager, orderedNotifications.get(0));
             }
-        }else if (stateChangedSinceLastUpdate) {
-            data.updateActiveNotification(context.get(), appWidgetManager, orderedNotifications.get(indexOfNotificationWithId(data.selectedNotification.notification.getId())));
+        }else if (stateChangedSinceLastUpdate && data.selectedNotification != null) {
+            data.updateActiveNotification(context.get(), appWidgetManager, orderedNotifications.get(indexOfMatchingNotification(data.selectedNotification)));
         }
     }
 }
