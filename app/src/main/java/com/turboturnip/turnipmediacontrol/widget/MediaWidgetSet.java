@@ -7,8 +7,8 @@ import android.content.Context;
 import android.media.session.MediaController;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
+import com.turboturnip.turnipmediacontrol.LogHelper;
 import com.turboturnip.turnipmediacontrol.MediaNotificationFinderService;
 
 import java.lang.ref.WeakReference;
@@ -19,7 +19,8 @@ import java.util.Map;
 
 // Singleton class, holds all MediaWidgetData instances and manipulates them based on requests
 public class MediaWidgetSet {
-    public final static MediaWidgetSet instance = new MediaWidgetSet();
+    private static final String TAG = LogHelper.getTag(MediaWidgetSet.class);
+    public static final MediaWidgetSet instance = new MediaWidgetSet();
 
     public List<MediaNotificationFinderService.MediaNotification> orderedNotifications = new ArrayList<>();
     private List<MediaNotificationFinderService.MediaNotification> previousOrderedNotifications = new ArrayList<>();
@@ -27,7 +28,7 @@ public class MediaWidgetSet {
     private MediaNotificationFinderService.Interface notificationWatcher = new MediaNotificationFinderService.Interface() {
         @Override
         public void onUpdateOrder(MediaNotificationFinderService.MediaNotificationSet notificationSet) {
-            Log.e("turnipmediawidget","Got " + notificationSet.orderedMediaNotifications.size() + " Notifications from onUpdateOrder");
+            LogHelper.i(TAG, "Got " + notificationSet.orderedMediaNotifications.size() + " Notifications from onUpdateOrder");
             orderedNotifications = notificationSet.orderedMediaNotifications;
             orderChangedSinceLastUpdate = true;
             queueUpdate();

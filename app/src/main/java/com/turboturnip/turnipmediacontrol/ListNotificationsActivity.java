@@ -34,19 +34,12 @@ public class ListNotificationsActivity extends AppCompatActivity {
     };
 
     TextView notificationListText;
-    MediaSessionManager manager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_list_notifications);
         notificationListText = findViewById(R.id.media_notification_text);
-        findViewById(R.id.update_list_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //MediaNotificationFinderService.updateCurrentSet(ListNotificationsActivity.this);
-            }
-        });
     }
 
     @Override
@@ -65,7 +58,6 @@ public class ListNotificationsActivity extends AppCompatActivity {
         if (notificationListText == null)
             return;
 
-        //Log.i("turnipmediacontrol", "Received Notifications!");
         StringBuilder namesBuilder = new StringBuilder();
 
 
@@ -78,33 +70,4 @@ public class ListNotificationsActivity extends AppCompatActivity {
 
         notificationListText.setText(namesBuilder.toString());
     }
-
-    /*@Override
-    public void onActiveSessionsChanged(@Nullable List<MediaController> controllers) {
-        if (notificationListText == null)
-            return;
-
-        List<MediaController> filteredControllers = new ArrayList<>();
-        for (MediaController controller : controllers){
-            //if (controller.getMetadata().)
-            filteredControllers.add(controller);
-        }
-
-        Log.i("turnipmediacontrol", "Received Notifications!");
-        StringBuilder namesBuilder = new StringBuilder();
-
-        //namesBuilder.append("Primary: ");
-        //if (filteredControllers.size() > 0)
-        //    namesBuilder.append(filteredControllers.get(0).getPackageName());
-        //else
-        //    namesBuilder.append("null");
-        //if (notificationSet.otherMediaNotifications != null) {
-        //    namesBuilder.append("\nOthers: ");
-            for (MediaController controller : filteredControllers) {
-                namesBuilder.append(controller.getPackageName()).append('\n');
-            }
-        //}
-
-        notificationListText.setText(namesBuilder.toString());
-    }*/
 }

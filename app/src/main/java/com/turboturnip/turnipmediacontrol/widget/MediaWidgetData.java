@@ -15,15 +15,17 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
 
+import com.turboturnip.turnipmediacontrol.LogHelper;
 import com.turboturnip.turnipmediacontrol.MediaNotificationFinderService;
 import com.turboturnip.turnipmediacontrol.R;
 import com.turboturnip.turnipmediacontrol.Util;
 
 public class MediaWidgetData {
+    private static final String TAG = LogHelper.getTag(MediaWidgetData.class);
+
     private final int appWidgetId;
     private boolean hasSetNotification = false;
     MediaNotificationFinderService.MediaNotification selectedNotification;
@@ -112,9 +114,7 @@ public class MediaWidgetData {
             //new MediaWidgetTheme(Color.rgb(255,255,255));
             //new MediaWidgetTheme(Color.rgb(255,0,0));
 
-    //static final String WIDGET_NOTIFICATION_ACTION = "com.turboturnip.turnipmediacontrol.WIDGET_NOTIFICATION_ACTION";
     static final String WIDGET_ACTION = "com.turboturnip.turnipmediacontrol.WIDGET_ACTION";
-    //static final String TARGET_NOTIFICATION_ID = "com.turboturnip.turnipmediacontrol.TARGET_NOTIFICATION_ID";
     static final String WIDGET_ID = "com.turboturnip.turnipmediacontrol.WIDGET_ID";
     static final String ACTION_PLAY = "play";
     static final String ACTION_PAUSE = "pause";
@@ -132,7 +132,7 @@ public class MediaWidgetData {
         if (hasSetNotification && MediaNotificationFinderService.MediaNotification.notificationsEqual(selectedNotification, newSelectedNotification))
             return;
 
-        Log.e("turnipmediawidget", "Change Active Notification From " + selectedNotification + " To " + newSelectedNotification);
+        LogHelper.d("turnipmediawidget", "Change Active Notification From " + selectedNotification + " To " + newSelectedNotification);
         if (selectedNotification != null)
             selectedNotification.controller.unregisterCallback(controllerCallback);
         selectedNotification = newSelectedNotification;
@@ -156,7 +156,7 @@ public class MediaWidgetData {
     }
 
     private void manualUpdate(Context context, AppWidgetManager appWidgetManager) {
-        Log.e("turnipmediawidget", "Full Update");
+        LogHelper.d("turnipmediawidget", "Full Update");
 
         generateViews(context, appWidgetManager);
     }

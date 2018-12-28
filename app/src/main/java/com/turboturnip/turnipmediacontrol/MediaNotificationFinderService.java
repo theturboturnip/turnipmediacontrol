@@ -1,45 +1,18 @@
 package com.turboturnip.turnipmediacontrol;
 
 import android.app.Notification;
-import android.app.Service;
-import android.content.AsyncQueryHandler;
 import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.drm.DrmStore;
-import android.media.MediaDataSource;
-import android.media.MediaMetadata;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
 import android.media.session.PlaybackState;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
-import android.provider.MediaStore;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.JsonWriter;
-import android.util.Log;
 
-import com.turboturnip.turnipmediacontrol.widget.MediaWidgetData;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONStringer;
-import org.json.JSONTokener;
-
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,14 +21,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
-// TODO: BUG: This doesn't throw away old notifications anymore
-// Might be the service, might be the widget
 public class MediaNotificationFinderService extends NotificationListenerService implements MediaSessionManager.OnActiveSessionsChangedListener {
-
-    public static final int MSG_REQUEST_NOTIFICATION_LIST = 1;
-    public static final int MSG_RECEIVE_NOTIFICATION_LIST = 2;
-
-    private Collection<Messenger> inputMessengers = new ArrayList<>();
+    private static final String TAG = LogHelper.getTag(MediaNotificationFinderService.class);
 
     // This class holds notification clones, so they won't change unexpectedly
     public static class MediaNotification {
@@ -73,21 +40,6 @@ public class MediaNotificationFinderService extends NotificationListenerService 
             if (a == null || b == null) return false;
             return (a.notification.getId() == b.notification.getId());
         }
-
-        /*@Override
-        public boolean equals(@Nullable Object obj) {
-            if (!(obj instanceof MediaNotification))
-                return false;
-
-            return notification.describeContents() == ((MediaNotification)obj).notification.describeContents();
-        }
-
-        @Override
-        public int hashCode() {
-            return notification.describeContents();
-        }*/
-
-
     }
     public static class MediaNotificationSet {
         public List<MediaNotification> orderedMediaNotifications = new ArrayList<>();
@@ -145,10 +97,12 @@ public class MediaNotificationFinderService extends NotificationListenerService 
     @Override
     public void onListenerConnected() {
         super.onListenerConnected();
-        //Log.e("turnipmediacontrol", "Listener Connected");
+
+        LogHelper.i(TAG, "Listener Connected");
+
         for (StatusBarNotification sbn : getActiveNotifications()){
             if (!notificationIsMedia(sbn)) continue;
-            //Log.e("turnipmediacontrol", "Found Notification: " + sbn.getPackageName());
+            LogHelper.v(TAG, "Listener Connected");
             mediaNotifications.add(sbn);
         }
         queueReprioritize();
@@ -168,10 +122,7 @@ public class MediaNotificationFinderService extends NotificationListenerService 
             if (mediaSessionToken != null)
                 tokenMap.put(mediaSessionToken, sbn);
             else
-                Log.e("turnipmedia", "notification from" + sbn.getPackageName() + " has no mediasessiontoken");
-            if (sbn.getPackageName().equals("com.simplemobiletools.musicplayer")) {
-                Log.e("turnipmedia", "session token for simple player = " + mediaSessionToken);
-            }
+                LogHelper.e(TAG, "notification from" + sbn.getPackageName() + " has no mediasessiontoken");
         }
 
         for (MediaController controller : existingControllers) {
@@ -179,42 +130,15 @@ public class MediaNotificationFinderService extends NotificationListenerService 
             if (associatedNotification != null &&
                     controller.getMetadata() != null)
                 set.orderedMediaNotifications.add(new MediaNotification(associatedNotification, controller));
-            Log.e("turnipmedia", "mediasessiontoken " + controller.getSessionToken() + " on package " + controller.getPackageName());
+            LogHelper.v(TAG, "mediasessiontoken " + controller.getSessionToken() + " on package " + controller.getPackageName());
         }
 
-        Log.e("turnipmedia", "[");
+        LogHelper.e(TAG, "[");
         for (MediaNotification notification : set.orderedMediaNotifications) {
-            Log.e("turnipmedia", "\t" + notification.notification.getPackageName() + " - " + notification.controller.getSessionToken());
+            LogHelper.e(TAG, "\t" + notification.notification.getPackageName() + " - " + notification.controller.getSessionToken());
         }
-        Log.e("turnipmedia", "]");
+        LogHelper.e(TAG, "]");
 
-        //if (mediaNotifications.contains(currentSet.primaryMediaNotification))
-        //    set.primaryMediaNotification = currentSet.primaryMediaNotification;
-
-        /*for (StatusBarNotification mediaNotification : mediaNotifications) {
-            // Check the notification has a MediaSession and a PlaybackState
-            if (mediaSessionToken == null) continue;
-            MediaController controller = tokenMap.get(mediaSessionToken);
-            if (controller == null) continue;
-            PlaybackState playbackState = controller.getPlaybackState();
-            if (playbackState == null) continue;
-
-            switch (playbackState.getState()) {
-                case PlaybackState.STATE_NONE:
-                case PlaybackState.STATE_STOPPED:
-                case PlaybackState.STATE_ERROR:
-                    continue;
-                default:
-                    break;
-            }
-
-            set.primaryMediaNotification = mediaNotification;
-        }
-        set.otherMediaNotifications = new HashSet<>();
-        for (StatusBarNotification mediaNotification : mediaNotifications) {
-            if (mediaNotification != set.primaryMediaNotification)
-                set.otherMediaNotifications.add(mediaNotification);
-        }*/
 
         int shouldUpdateListeners = 0;
         if (currentSet == null)
@@ -261,7 +185,7 @@ public class MediaNotificationFinderService extends NotificationListenerService 
                 }
             }
         }
-        Log.i("turnipmedia", "New: " + set + " Current: " + currentSet + " Will Update Listeners: " + shouldUpdateListeners);
+        LogHelper.i(TAG, "New: " + set + " Current: " + currentSet + " Will Update Listeners: " + shouldUpdateListeners);
 
         currentSet = set;
         return shouldUpdateListeners;
@@ -288,12 +212,12 @@ public class MediaNotificationFinderService extends NotificationListenerService 
 
     private void discoverMediaNotification(StatusBarNotification sbn){
         mediaNotifications.add(sbn);
-        Log.e("turnipmedia", "Discovered notification from " + sbn.getPackageName());
+        LogHelper.i(TAG,"Discovered notification from " + sbn.getPackageName());
         queueReprioritize();
     }
     private void removeMediaNotification(StatusBarNotification sbn){
         mediaNotifications.remove(sbn);
-        Log.e("turnipmedia", "Threw away notification from " + sbn.getPackageName());
+        LogHelper.i(TAG, "Threw away notification from " + sbn.getPackageName());
         queueReprioritize();
     }
     private boolean notificationIsMedia(StatusBarNotification sbn){
