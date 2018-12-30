@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/content"
@@ -7,8 +7,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/background_light"
     android:gravity="center_vertical|center_horizontal"
-    android:orientation="vertical"
-    tools:layout_height="180dp">
+    tools:layout_height="200dp">
 
     <!--<TextView
         android:layout_width="match_parent"
@@ -31,4 +30,21 @@
         android:rowCount="1">
 
     </GridLayout>
-</LinearLayout>
+
+    <LinearLayout
+        android:layout_width="36dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentEnd="true"
+        android:orientation="vertical">
+
+        <ImageButton
+            android:id="@+id/settings_button"
+            style="@style/RippleButton"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:tint="@android:color/black"
+            app:srcCompat="@drawable/ic_play_arrow_36dp" />
+    </LinearLayout>
+
+</RelativeLayout>
