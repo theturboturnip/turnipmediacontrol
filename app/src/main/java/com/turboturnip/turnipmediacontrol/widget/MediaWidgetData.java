@@ -281,7 +281,14 @@ public class MediaWidgetData {
         } else {
             // Handle switching from some notification to no notification
             views = new RemoteViews(context.getPackageName(), R.layout.speed_dial_widget);
-            views.setInt(R.id.content, "setBackgroundColor", theme.backgroundColor);
+            if (shouldPushFullUpdate) {
+                views.setInt(R.id.content, "setBackgroundColor", theme.backgroundColor);
+
+                views.setOnClickPendingIntent(R.id.settings_button, generateOpenSettingsIntent(context));
+                views.setImageViewResource(R.id.settings_button, R.drawable.ic_settings_24dp);
+                views.setInt(R.id.settings_button, "setColorFilter", theme.standoutColor);
+                views.setInt(R.id.settings_button, "setBackgroundColor", theme.mutedBackgroundColor);
+            }
         }
 
         if (shouldPushFullUpdate) {
@@ -304,11 +311,22 @@ public class MediaWidgetData {
     private PendingIntent generateActionIntent(Context context, String action) {
         // Generates an Intent that will perform the specified action for the
         // controller paired to a notification with the given id
-        Intent controllerActionIntent = new Intent(context, MediaWidgetProvider.class).setAction(WIDGET_ACTION);
-        controllerActionIntent.setData(new Uri.Builder().path(action).appendQueryParameter(WIDGET_ID, ""+appWidgetId).build());
+        Intent actionIntent = new Intent(context, MediaWidgetProvider.class);
+        actionIntent.setAction(WIDGET_ACTION);
+        actionIntent.setData(new Uri.Builder().path(action).appendQueryParameter(WIDGET_ID, ""+appWidgetId).build());
         return PendingIntent.getBroadcast(context,
                 0,
-                controllerActionIntent,
+                actionIntent,
+                0);
+    }
+    private PendingIntent generateOpenSettingsIntent(Context context) {
+        Intent openSettingsIntent = new Intent(context, SettingsActivity.class);
+        // Add a distinction to make sure this can exist for each widget in the system
+        openSettingsIntent.setAction("" + appWidgetId);
+        openSettingsIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        return PendingIntent.getActivity(context,
+                0,
+                openSettingsIntent,
                 0);
     }
 }

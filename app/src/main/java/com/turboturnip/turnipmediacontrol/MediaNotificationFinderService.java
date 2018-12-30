@@ -2,6 +2,7 @@ package com.turboturnip.turnipmediacontrol;
 
 import android.app.Notification;
 import android.content.ComponentName;
+import android.content.Intent;
 import android.media.session.MediaController;
 import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
@@ -11,6 +12,8 @@ import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+
+import com.turboturnip.turnipmediacontrol.widget.MediaWidgetSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -77,6 +80,8 @@ public class MediaNotificationFinderService extends NotificationListenerService 
     private static MediaSessionManager sessionManager;
     private static ComponentName componentName;
 
+    // Allow this service to be started by Intents in case the widget wants it back
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -85,6 +90,7 @@ public class MediaNotificationFinderService extends NotificationListenerService 
         if (componentName == null)
             componentName = new ComponentName(this, MediaNotificationFinderService.class);
         sessionManager.addOnActiveSessionsChangedListener(this, componentName);
+        MediaWidgetSet.instance.updateContext(this);
     }
 
     @Override

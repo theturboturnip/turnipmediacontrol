@@ -53,6 +53,7 @@ public class MediaWidgetSet {
     ComponentName providerComponentName = null;
 
     private MediaWidgetSet() {
+        MediaNotificationFinderService.attachInterface(notificationWatcher);
     }
 
     private boolean updateQueued = false;
@@ -81,14 +82,13 @@ public class MediaWidgetSet {
 
     public void updateContext(@NonNull Context context) {
         MediaNotificationFinderService.attachInterface(notificationWatcher);
-        if (this.context.get() != null)
-            return;
-
-        this.context = new WeakReference<>(context);
-        if (appWidgetManager == null) {
-            appWidgetManager = context.getSystemService(AppWidgetManager.class);
+        if (this.context.get() == null) {
+            this.context = new WeakReference<>(context);
+            if (appWidgetManager == null) {
+                appWidgetManager = context.getSystemService(AppWidgetManager.class);
+            }
+            providerComponentName = new ComponentName(context, MediaWidgetProvider.class);
         }
-        providerComponentName = new ComponentName(context, MediaWidgetProvider.class);
         discoverNewWidgets(appWidgetManager.getAppWidgetIds(providerComponentName));
     }
     private MediaWidgetData getWidgetData(int appWidgetId) {
