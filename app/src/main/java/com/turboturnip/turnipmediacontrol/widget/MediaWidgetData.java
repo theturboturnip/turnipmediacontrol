@@ -24,8 +24,6 @@ import com.turboturnip.turnipmediacontrol.R;
 import com.turboturnip.turnipmediacontrol.SettingsActivity;
 import com.turboturnip.turnipmediacontrol.Util;
 
-import java.util.Set;
-
 public class MediaWidgetData {
     private static final String TAG = LogHelper.getTag(MediaWidgetData.class);
 
@@ -70,10 +68,10 @@ public class MediaWidgetData {
                     return false;
 
                 Metadata other = (Metadata)obj;
-                //if (!Util.objectsEqual(albumArtBitmap, other.albumArtBitmap))
-                //    return false;
-                //if (!Util.objectsEqual(albumArtIcon, other.albumArtIcon))
-                //    return false;
+                if (!Util.objectsEqual(albumArtBitmap, other.albumArtBitmap))
+                    return false;
+                if (!Util.objectsEqual(albumArtIcon, other.albumArtIcon))
+                    return false;
                 if (!Util.objectsEqual(title, other.title))
                     return false;
                 if (!Util.objectsEqual(artist, other.artist))

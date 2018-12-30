@@ -11,12 +11,13 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v14.preference.PreferenceFragment;
-import android.support.v7.preference.ListPreference;
-import android.support.v7.preference.Preference;
+import android.preference.PreferenceFragment;
+import android.preference.ListPreference;
+import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.support.annotation.Nullable;
 import android.support.v7.app.ActionBar;
-import android.support.v7.preference.PreferenceManager;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.MenuItem;
 
@@ -151,15 +152,36 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     }
 
 
+//    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+//    public static class PreferencesFragment extends PreferenceFragment {
+//
+//        @Override
+//        public void onCreatePreferences(Bundle bundle, String s) {
+//            setPreferencesFromResource(R.xml.preferences, s);
+//
+//            bindPreferenceSummaryToValue(findPreference("color_choices_list"));
+//        }
+//
+//        @Override
+//        public void onDisplayPreferenceDialog(Preference preference) {
+//
+//                super.onDisplayPreferenceDialog(preference);
+//        }
+//    }
+
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class PreferencesFragment extends PreferenceFragment {
 
         @Override
-        public void onCreatePreferences(Bundle bundle, String s) {
-            setPreferencesFromResource(R.xml.preferences, s);
-
+        public void onCreate(@Nullable Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            addPreferencesFromResource(R.xml.preferences);
             bindPreferenceSummaryToValue(findPreference("color_choices_list"));
         }
+
+
+
+        
     }
 
     public enum MediaWidgetThemeType {
