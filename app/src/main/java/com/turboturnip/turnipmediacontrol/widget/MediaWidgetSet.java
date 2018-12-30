@@ -198,6 +198,7 @@ public class MediaWidgetSet {
         }else if (stateChangedSinceLastUpdate && data.selectedNotification != null) {
             data.updateActiveNotification(context.get(), appWidgetManager, orderedNotifications.get(indexOfMatchingNotification(data.selectedNotification)));
         } else {
+            LogHelper.e(TAG, "Generating views");
             data.generateViews(context.get(), appWidgetManager);
         }
     }

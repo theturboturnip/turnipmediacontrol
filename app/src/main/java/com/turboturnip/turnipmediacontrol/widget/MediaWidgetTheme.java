@@ -3,6 +3,7 @@ package com.turboturnip.turnipmediacontrol.widget;
 import android.graphics.Color;
 import android.support.annotation.ColorInt;
 import android.support.annotation.IntRange;
+import android.support.annotation.Nullable;
 
 public class MediaWidgetTheme {
     // Used for the widget background
@@ -27,6 +28,22 @@ public class MediaWidgetTheme {
         this.backgroundColor = backgroundColor;
         this.standoutColor = standoutColor;
         this.mutedBackgroundColor = mutedBackgroundColor;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (!(obj instanceof MediaWidgetTheme)) {
+            return false;
+        }
+
+        MediaWidgetTheme other = (MediaWidgetTheme)obj;
+        if (backgroundColor != other.backgroundColor)
+            return false;
+        if (standoutColor != other.standoutColor)
+            return false;
+        if (mutedBackgroundColor != other.mutedBackgroundColor)
+            return false;
+        return true;
     }
 
     @ColorInt

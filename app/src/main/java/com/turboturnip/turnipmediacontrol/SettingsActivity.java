@@ -96,14 +96,21 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                 PreferenceManager
                         .getDefaultSharedPreferences(preference.getContext())
                         .getString(preference.getKey(), ""));
-        // TODO: Be more selective here
-        MediaWidgetSet.instance.updateKnownWidgets();
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setupActionBar();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // This works because onPause is called when leaving the app through the home button
+        // TODO: Is this hacky?
+        LogHelper.e(TAG, "CHANGING THING");
+        MediaWidgetSet.instance.updateKnownWidgets();
     }
 
     /**
