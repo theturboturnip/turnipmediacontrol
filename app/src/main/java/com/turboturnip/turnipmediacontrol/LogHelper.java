@@ -28,18 +28,18 @@ public class LogHelper {
 
     public static void v(String tag, Object message) {
         if (LogLevel.Verbose.aboveThreshold(logThreshold))
-            Log.v(tag, message.toString());
+            Log.v(tag, Util.toString(message));
     }
     public static void i(String tag, Object message) {
         if (LogLevel.Info.aboveThreshold(logThreshold))
-            Log.i(tag, message.toString());
+            Log.i(tag, Util.toString(message));
     }
     public static void d(String tag, Object message) {
         if (LogLevel.Debug.aboveThreshold(logThreshold))
-            Log.d(tag, message.toString());
+            Log.d(tag, Util.toString(message));
     }
     public static void e(String tag, Object message) {
         if (LogLevel.Error.aboveThreshold(logThreshold))
-            Log.e(tag, message.toString());
+            Log.e(tag, Util.toString(message));
     }
 }

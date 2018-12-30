@@ -44,7 +44,7 @@ public class MediaWidgetProvider extends AppWidgetProvider {
         // When the user deletes the widget, delete the preference associated with it.
         MediaWidgetSet.instance.updateContext(context);
         for (int appWidgetId : appWidgetIds) {
-            MediaWidgetConfigureActivity.deleteTitlePref(context, appWidgetId);
+            //MediaWidgetConfigureActivity.deleteTitlePref(context, appWidgetId);
             MediaWidgetSet.instance.removeWidget(appWidgetId);
         }
     }

@@ -21,7 +21,10 @@ import android.widget.RemoteViews;
 import com.turboturnip.turnipmediacontrol.LogHelper;
 import com.turboturnip.turnipmediacontrol.MediaNotificationFinderService;
 import com.turboturnip.turnipmediacontrol.R;
+import com.turboturnip.turnipmediacontrol.SettingsActivity;
 import com.turboturnip.turnipmediacontrol.Util;
+
+import java.util.Set;
 
 public class MediaWidgetData {
     private static final String TAG = LogHelper.getTag(MediaWidgetData.class);
@@ -88,6 +91,8 @@ public class MediaWidgetData {
         boolean navLeft = false;
         boolean navRight = false;
 
+        MediaWidgetTheme theme;
+
         @Override
         public boolean equals(@Nullable Object obj) {
             if (!(obj instanceof ViewState))
@@ -97,6 +102,12 @@ public class MediaWidgetData {
             if (!Util.objectsEqual(metadata, other.metadata))
                 return false;
             if (playing != other.playing)
+                return false;
+            if (navLeft != other.navLeft)
+                return false;
+            if (navRight != other.navRight)
+                return false;
+            if (!Util.objectsEqual(theme, other.theme))
                 return false;
             return true;
         }
@@ -109,8 +120,8 @@ public class MediaWidgetData {
     }
     private ViewState currentViewState = null;
 
-    private MediaWidgetTheme theme =
-            new MediaWidgetTheme(Color.argb(128, 0,0,0));
+    //private MediaWidgetTheme theme =
+    //        new MediaWidgetTheme(Color.argb(128, 0,0,0));
             //new MediaWidgetTheme(Color.rgb(255,255,255));
             //new MediaWidgetTheme(Color.rgb(255,0,0));
 
@@ -161,8 +172,11 @@ public class MediaWidgetData {
         generateViews(context, appWidgetManager);
     }
 
-    private ViewState generateViewState() {
+    private ViewState generateViewState(Context context) {
         ViewState resultViewState = new ViewState();
+
+        SettingsActivity.MediaWidgetThemeType themeType = SettingsActivity.getSelectedTheme(context);
+        resultViewState.theme = SettingsActivity.decodeExistingThemeType(context, themeType);
 
         if (selectedNotification == null) {
             resultViewState.hasSong = false;
@@ -207,13 +221,13 @@ public class MediaWidgetData {
         return resultViewState;
     }
 
-    private void generateViews(Context context, AppWidgetManager appWidgetManager){
+    public void generateViews(Context context, AppWidgetManager appWidgetManager){
         generateViews(context, appWidgetManager, false);
     }
     private void generateViews(Context context, AppWidgetManager appWidgetManager, boolean forceUpdateMetadata) {
-        ViewState newViewState = generateViewState();
+        ViewState newViewState = generateViewState(context);
 
-        boolean shouldPushFullUpdate = currentViewState == null || currentViewState.hasSong != newViewState.hasSong;
+        boolean shouldPushFullUpdate = currentViewState == null || currentViewState.hasSong != newViewState.hasSong || !Util.objectsEqual(currentViewState.theme, newViewState.theme);
         boolean shouldPushPartialUpdate = false;
 
         RemoteViews views;
@@ -226,7 +240,7 @@ public class MediaWidgetData {
 
             shouldPushPartialUpdate = updateMetadata || updatePlayback || updateNav;
 
-            views.setInt(R.id.content, "setBackgroundColor", theme.backgroundColor);
+            views.setInt(R.id.content, "setBackgroundColor", newViewState.theme.backgroundColor);
 
             if (updateMetadata){
                 if (newViewState.metadata.albumArtBitmap != null)
@@ -235,26 +249,26 @@ public class MediaWidgetData {
                     views.setImageViewIcon(R.id.album_art, newViewState.metadata.albumArtIcon);
 
                 views.setTextViewText(R.id.title_text, newViewState.metadata.title);
-                views.setTextColor(R.id.title_text, theme.standoutColor);
+                views.setTextColor(R.id.title_text, newViewState.theme.standoutColor);
                 views.setTextViewText(R.id.artist_text, newViewState.metadata.artist);
-                views.setTextColor(R.id.artist_text, theme.standoutColor);
+                views.setTextColor(R.id.artist_text, newViewState.theme.standoutColor);
                 views.setTextViewText(R.id.album_text, newViewState.metadata.album);
-                views.setTextColor(R.id.album_text, theme.standoutColor);
+                views.setTextColor(R.id.album_text, newViewState.theme.standoutColor);
             }
 
             if (updatePlayback){
                 views.setViewVisibility(R.id.play_button, View.VISIBLE);
                 views.setImageViewResource(R.id.play_button, newViewState.playing ? R.drawable.ic_pause_36dp : R.drawable.ic_play_arrow_36dp);
                 views.setOnClickPendingIntent(R.id.play_button, generatePlayPausePendingIntent(context, newViewState.playing));
-                views.setInt(R.id.play_button, "setColorFilter", theme.standoutColor);
+                views.setInt(R.id.play_button, "setColorFilter", newViewState.theme.standoutColor);
 
                 views.setImageViewResource(R.id.skip_next_button, R.drawable.ic_skip_next_36dp);
                 views.setOnClickPendingIntent(R.id.skip_next_button, generateSkipNextPendingIntent(context));
-                views.setInt(R.id.skip_next_button, "setColorFilter", theme.standoutColor);
+                views.setInt(R.id.skip_next_button, "setColorFilter", newViewState.theme.standoutColor);
 
                 views.setImageViewResource(R.id.skip_previous_button, R.drawable.ic_skip_previous_36dp);
                 views.setOnClickPendingIntent(R.id.skip_previous_button, generateSkipPreviousPendingIntent(context));
-                views.setInt(R.id.skip_previous_button, "setColorFilter", theme.standoutColor);
+                views.setInt(R.id.skip_previous_button, "setColorFilter", newViewState.theme.standoutColor);
             }
 
             if (updateNav){
@@ -262,8 +276,8 @@ public class MediaWidgetData {
                     views.setViewVisibility(R.id.nav_left, View.VISIBLE);
                     views.setOnClickPendingIntent(R.id.nav_left, generateActionIntent(context, ACTION_SELECT_LEFT));
                     views.setImageViewResource(R.id.nav_left, R.drawable.ic_chevron_left_24dp);
-                    views.setInt(R.id.nav_left, "setColorFilter", theme.standoutColor);
-                    views.setInt(R.id.nav_left, "setBackgroundColor", theme.mutedBackgroundColor);
+                    views.setInt(R.id.nav_left, "setColorFilter", newViewState.theme.standoutColor);
+                    views.setInt(R.id.nav_left, "setBackgroundColor", newViewState.theme.mutedBackgroundColor);
                 } else {
                     views.setViewVisibility(R.id.nav_left, View.GONE);
                 }
@@ -272,8 +286,8 @@ public class MediaWidgetData {
                     views.setViewVisibility(R.id.nav_right, View.VISIBLE);
                     views.setOnClickPendingIntent(R.id.nav_right, generateActionIntent(context, ACTION_SELECT_RIGHT));
                     views.setImageViewResource(R.id.nav_right, R.drawable.ic_chevron_right_24dp);
-                    views.setInt(R.id.nav_right, "setColorFilter", theme.standoutColor);
-                    views.setInt(R.id.nav_right, "setBackgroundColor", theme.mutedBackgroundColor);
+                    views.setInt(R.id.nav_right, "setColorFilter", newViewState.theme.standoutColor);
+                    views.setInt(R.id.nav_right, "setBackgroundColor", newViewState.theme.mutedBackgroundColor);
                 } else {
                     views.setViewVisibility(R.id.nav_right, View.GONE);
                 }
@@ -282,12 +296,12 @@ public class MediaWidgetData {
             // Handle switching from some notification to no notification
             views = new RemoteViews(context.getPackageName(), R.layout.speed_dial_widget);
             if (shouldPushFullUpdate) {
-                views.setInt(R.id.content, "setBackgroundColor", theme.backgroundColor);
+                views.setInt(R.id.content, "setBackgroundColor", newViewState.theme.backgroundColor);
 
                 views.setOnClickPendingIntent(R.id.settings_button, generateOpenSettingsIntent(context));
                 views.setImageViewResource(R.id.settings_button, R.drawable.ic_settings_24dp);
-                views.setInt(R.id.settings_button, "setColorFilter", theme.standoutColor);
-                views.setInt(R.id.settings_button, "setBackgroundColor", theme.mutedBackgroundColor);
+                views.setInt(R.id.settings_button, "setColorFilter", newViewState.theme.standoutColor);
+                views.setInt(R.id.settings_button, "setBackgroundColor", newViewState.theme.mutedBackgroundColor);
             }
         }
 

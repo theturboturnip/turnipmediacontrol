@@ -14,7 +14,7 @@ import com.turboturnip.turnipmediacontrol.R;
 /**
  * The configuration screen for the {@link MediaWidgetProvider MediaWidgetProvider} AppWidget.
  */
-public class MediaWidgetConfigureActivity extends Activity {
+/*public class MediaWidgetConfigureActivity extends Activity {
 
     private static final String PREFS_NAME = "com.turboturnip.turnipmediacontrol.widget.MediaWidgetProvider";
     private static final String PREF_PREFIX_KEY = "appwidget_";
@@ -97,5 +97,5 @@ public class MediaWidgetConfigureActivity extends Activity {
 
         mAppWidgetText.setText(loadTitlePref(MediaWidgetConfigureActivity.this, mAppWidgetId));
     }
-}
+}*/
 

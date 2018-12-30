@@ -13,4 +13,10 @@ public class Util {
         if (a == null || b == null) return false;
         return a.toString().equals(b.toString());
     }
+
+    public static String toString(Object a) {
+        if (a == null)
+            return "null";
+        return a.toString();
+    }
 }
