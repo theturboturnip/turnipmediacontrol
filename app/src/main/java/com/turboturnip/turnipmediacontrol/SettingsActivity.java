@@ -181,7 +181,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
 
 
 
-        
+
     }
 
     public enum MediaWidgetThemeType {
