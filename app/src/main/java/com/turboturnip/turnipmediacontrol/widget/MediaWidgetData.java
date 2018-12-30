@@ -230,12 +230,6 @@ public class MediaWidgetData {
         boolean shouldPushFullUpdate = currentViewState == null ||
                 currentViewState.hasSong != newViewState.hasSong ||
                 !Util.objectsEqual(currentViewState.theme, newViewState.theme);
-        if (currentViewState != null){
-            if (!Util.objectsEqual(currentViewState.theme, newViewState.theme))
-                LogHelper.e(TAG, "NEW THEME " + currentViewState.theme.backgroundColor);
-            else
-                LogHelper.e(TAG, "OLD THEME " + currentViewState.theme.backgroundColor);
-        }
         boolean shouldPushPartialUpdate = false;
 
         RemoteViews views;
