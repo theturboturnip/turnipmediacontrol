@@ -13,8 +13,11 @@ import android.media.session.MediaController;
 import android.media.session.PlaybackState;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.support.annotation.ColorInt;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.graphics.Palette;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -23,6 +26,9 @@ import com.turboturnip.turnipmediacontrol.MediaNotificationFinderService;
 import com.turboturnip.turnipmediacontrol.R;
 import com.turboturnip.turnipmediacontrol.SettingsActivity;
 import com.turboturnip.turnipmediacontrol.Util;
+
+import java.util.List;
+import java.util.Set;
 
 public class MediaWidgetData {
     private static final String TAG = LogHelper.getTag(MediaWidgetData.class);
@@ -174,7 +180,13 @@ public class MediaWidgetData {
         ViewState resultViewState = new ViewState();
 
         SettingsActivity.MediaWidgetThemeType themeType = SettingsActivity.getSelectedTheme(context);
-        resultViewState.theme = SettingsActivity.decodeExistingThemeType(context, themeType);
+        if (themeType == SettingsActivity.MediaWidgetThemeType.ALBUM_ART) {
+            // TODO: Change default theme?
+            resultViewState.theme = currentViewState == null ?
+                    SettingsActivity.decodeExistingThemeType(context, SettingsActivity.MediaWidgetThemeType.LIGHT) : currentViewState.theme;
+        } else {
+            resultViewState.theme = SettingsActivity.decodeExistingThemeType(context, themeType);
+        }
 
         if (selectedNotification == null) {
             resultViewState.hasSong = false;
@@ -215,6 +227,36 @@ public class MediaWidgetData {
         int selectedNotificationIndex = MediaWidgetSet.instance.indexOfMatchingNotification(selectedNotification);
         resultViewState.navLeft = selectedNotificationIndex > 0;
         resultViewState.navRight = selectedNotificationIndex < MediaWidgetSet.instance.orderedNotifications.size() - 1;
+
+
+        if (themeType == SettingsActivity.MediaWidgetThemeType.ALBUM_ART &&
+                !Util.objectsEqual(currentViewState.metadata, resultViewState.metadata)){
+            resultViewState.theme = null;
+
+            Bitmap sourceBitmap = resultViewState.metadata.albumArtBitmap;
+            if (sourceBitmap == null) {
+                /*switch (resultViewState.metadata.albumArtIcon.getType()) {
+                    case Icon.TYPE_ADAPTIVE_BITMAP:
+                    case Icon.TYPE_BITMAP:
+                        sourceBitmap = resultViewState.metadata.albumArtIcon.get
+                }*/
+            } else {
+                Palette palette = Palette.from(sourceBitmap).maximumColorCount(4).generate();
+                if (palette.getVibrantSwatch() == null) {
+                    List<Palette.Swatch> swatchList = palette.getSwatches();
+                    if (swatchList.size() > 0)
+                        resultViewState.theme = new MediaWidgetTheme(swatchList.get(0).getRgb());
+                } else {
+                    resultViewState.theme = new MediaWidgetTheme(palette.getVibrantSwatch().getRgb());
+                }
+            }
+
+            if (resultViewState.theme == null) {
+                @ColorInt int notificationColor = selectedNotification.notification.getNotification().color;
+                notificationColor = notificationColor | 0xFF000000;
+                resultViewState.theme = new MediaWidgetTheme(notificationColor);
+            }
+        }
 
         return resultViewState;
     }

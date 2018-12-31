@@ -245,7 +245,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                 return new MediaWidgetTheme(backgroundColor, standoutColor, mutedBgColor);
             }
             case ALBUM_ART:
-                //throw new UnsupportedOperationException("Can't decode ALBUM_ART, must be done in widget");
+                throw new UnsupportedOperationException("Can't decode ALBUM_ART, must be done in widget");
             case LIGHT:
                 return new MediaWidgetTheme(context.getResources().getColor(R.color.widgetLightBG, context.getTheme()));
             case DARK:
