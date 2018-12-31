@@ -335,9 +335,7 @@ public class MediaWidgetData {
     }
     private PendingIntent generateOpenSettingsIntent(Context context) {
         Intent openSettingsIntent = new Intent(context, SettingsActivity.class);
-        // Add a distinction to make sure this can exist for each widget in the system
-        openSettingsIntent.setAction("" + appWidgetId);
-        openSettingsIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+        openSettingsIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         return PendingIntent.getActivity(context,
                 0,
                 openSettingsIntent,

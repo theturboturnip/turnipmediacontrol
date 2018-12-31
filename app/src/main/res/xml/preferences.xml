@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <PreferenceCategory android:title="Styling">
+    <PreferenceCategory android:title="Styling"
+        android:key="styling_parent">
 
         <ListPreference
             android:defaultValue="light"
@@ -18,9 +20,25 @@
 
 
     </PreferenceCategory>
-    <com.rarepebble.colorpicker.ColorPreference
-        android:key="custom_bg_color"
-        android:title="Custom Background Color"
-        android:defaultValue="#f00"
-        />
+    <PreferenceCategory android:title="Custom Colors"
+        android:key="custom_colors_parent">
+
+        <com.rarepebble.colorpicker.ColorPreference
+            android:defaultValue="#fff"
+            android:key="custom_bg_color"
+            android:title="Background"/>
+
+        <com.rarepebble.colorpicker.ColorPreference
+            android:key="custom_emph_color"
+            android:title="Text &amp; Icons"
+            app:colorpicker_selectNoneButtonText="Autogenerate"
+            app:colorpicker_noneSelectedSummaryText="Auto-Generated"/>
+
+        <com.rarepebble.colorpicker.ColorPreference
+            android:key="custom_mute_bg_color"
+            android:title="Button Background"
+            app:colorpicker_selectNoneButtonText="Autogenerate"
+            app:colorpicker_noneSelectedSummaryText="Auto-Generated"/>
+    </PreferenceCategory>
+
 </PreferenceScreen>

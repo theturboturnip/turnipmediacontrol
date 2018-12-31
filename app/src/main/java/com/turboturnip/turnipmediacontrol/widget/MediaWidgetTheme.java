@@ -8,19 +8,19 @@ import android.support.annotation.Nullable;
 public class MediaWidgetTheme {
     // Used for the widget background
     @ColorInt
-    public final int backgroundColor;
+    public int backgroundColor;
     // Used for the text and buttons
     @ColorInt
-    public final int standoutColor;
+    public int standoutColor;
     // Used for the navigation button backgrounds
     @ColorInt
-    public final int mutedBackgroundColor;
+    public int mutedBackgroundColor;
 
     public MediaWidgetTheme(int backgroundColor) {
-        this(backgroundColor, generateStandoutColor(backgroundColor));
+        this(backgroundColor, null, null);
     }
 
-    public MediaWidgetTheme(int backgroundColor, int standoutColor) {
+    /**public MediaWidgetTheme(int backgroundColor, int standoutColor) {
         this(backgroundColor, standoutColor, generateMutedColor(backgroundColor, standoutColor));
     }
 
@@ -28,6 +28,22 @@ public class MediaWidgetTheme {
         this.backgroundColor = backgroundColor;
         this.standoutColor = standoutColor;
         this.mutedBackgroundColor = mutedBackgroundColor;
+    }*/
+
+    public MediaWidgetTheme(int backgroundColor, Integer standoutColor, Integer mutedBackgroundColor) {
+        this.backgroundColor = backgroundColor;
+
+        if (standoutColor == null) {
+            generateStandoutColor();
+        } else {
+            this.standoutColor = standoutColor;
+        }
+
+        if (mutedBackgroundColor == null) {
+            generateMutedColor();
+        } else {
+            this.mutedBackgroundColor = mutedBackgroundColor;
+        }
     }
 
     @Override
@@ -46,8 +62,7 @@ public class MediaWidgetTheme {
         return true;
     }
 
-    @ColorInt
-    private static int generateStandoutColor(int backgroundColor) {
+    private void generateStandoutColor() {
         // Take brightness of background, choose between white or black depending on the inverse brightness
 
         // Get "perceived" brightness using technique found here: http://alienryderflex.com/hsp.html
@@ -55,26 +70,25 @@ public class MediaWidgetTheme {
         int inverseBrightness = getInverseBrightness(perceivedBrightness);
 
         // Disregard alpha here, standout stuff should always be visible
-        return Color.rgb(inverseBrightness, inverseBrightness, inverseBrightness);
+        this.standoutColor = Color.rgb(inverseBrightness, inverseBrightness, inverseBrightness);
     }
-    @ColorInt
-    private static int generateMutedColor(int source, int standout) {
+    private void generateMutedColor() {
         int r, g, b, a = 255;
-        if (Color.alpha(source) < 200) {
-            r = Color.red(source);
-            g = Color.green(source);
-            b = Color.blue(source);
-            a = Math.round(lerp(Color.alpha(source), 255, 0.75f));
+        if (Color.alpha(backgroundColor) < 200) {
+            r = Color.red(backgroundColor);
+            g = Color.green(backgroundColor);
+            b = Color.blue(backgroundColor);
+            a = Math.round(lerp(Color.alpha(backgroundColor), 255, 0.75f));
         } else {
             // Channel-wise interpolation between source and standout
             // This factor feels right for inverseTippingRatio of 0.25, might want to make it not relative
             float factor = 1 - inverseTippingRatio;
-            r = Math.round(lerp(Color.red(source), Color.red(standout), factor));
-            g = Math.round(lerp(Color.green(source), Color.green(standout), factor));
-            b = Math.round(lerp(Color.blue(source), Color.blue(standout), factor));
+            r = Math.round(lerp(Color.red(backgroundColor), Color.red(standoutColor), factor));
+            g = Math.round(lerp(Color.green(backgroundColor), Color.green(standoutColor), factor));
+            b = Math.round(lerp(Color.blue(backgroundColor), Color.blue(standoutColor), factor));
         }
 
-        return Color.argb(a, r, g, b);
+        this.mutedBackgroundColor = Color.argb(a, r, g, b);
     }
 
     private static float lerp(float a, float b, float c){

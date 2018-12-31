@@ -6,15 +6,20 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceGroup;
+import android.preference.PreferenceScreen;
+import android.support.annotation.ColorInt;
 import android.support.annotation.Nullable;
 import android.support.v7.app.ActionBar;
 import android.preference.PreferenceManager;
@@ -40,13 +45,30 @@ import java.util.Set;
  */
 public class SettingsActivity extends AppCompatPreferenceActivity {
     private static final String TAG = LogHelper.getTag(SettingsActivity.class);
+
+    private static Preference customColorsGroup;
+    private static PreferenceScreen colorsGroupParent;
     /**
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
      */
-    private static Preference.OnPreferenceChangeListener sBindPreferenceSummaryToValueListener = new Preference.OnPreferenceChangeListener() {
+    private static Preference.OnPreferenceChangeListener preferenceListener = new Preference.OnPreferenceChangeListener() {
         @Override
         public boolean onPreferenceChange(Preference preference, Object value) {
+            if (customColorsGroup != null && colorsGroupParent != null) {
+                switch (preference.getKey()) {
+                    case "color_choices_list":
+                        if (value.toString().equals("custom")) {
+                            colorsGroupParent.addPreference(customColorsGroup);
+                        } else {
+                            colorsGroupParent.removePreference(customColorsGroup);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+
             String stringValue = value.toString();
 
             if (preference instanceof ListPreference) {
@@ -85,15 +107,15 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
      * immediately updated upon calling this method. The exact display format is
      * dependent on the type of preference.
      *
-     * @see #sBindPreferenceSummaryToValueListener
+     * @see #
      */
-    private static void bindPreferenceSummaryToValue(Preference preference) {
+    private static void registerPreference(Preference preference) {
         // Set the listener to watch for value changes.
-        preference.setOnPreferenceChangeListener(sBindPreferenceSummaryToValueListener);
+        preference.setOnPreferenceChangeListener(preferenceListener);
 
         // Trigger the listener immediately with the preference's
         // current value.
-        sBindPreferenceSummaryToValueListener.onPreferenceChange(preference,
+        preferenceListener.onPreferenceChange(preference,
                 PreferenceManager
                         .getDefaultSharedPreferences(preference.getContext())
                         .getString(preference.getKey(), ""));
@@ -110,7 +132,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         super.onPause();
         // This works because onPause is called when leaving the app through the home button
         // TODO: Is this hacky?
-        LogHelper.e(TAG, "CHANGING THING");
         MediaWidgetSet.instance.updateKnownWidgets();
     }
 
@@ -176,10 +197,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         public void onCreate(@Nullable Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.preferences);
-            bindPreferenceSummaryToValue(findPreference("color_choices_list"));
+            colorsGroupParent = getPreferenceScreen();
+            customColorsGroup = findPreference("custom_colors_parent");
+            registerPreference(findPreference("color_choices_list"));
         }
-
-
 
 
     }
@@ -209,9 +230,22 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     }
     public static MediaWidgetTheme decodeExistingThemeType(Context context, MediaWidgetThemeType themeType) {
         switch(themeType) {
+            case CUSTOM:
+            {
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+                @ColorInt int backgroundColor = preferences.getInt("custom_bg_color", Color.WHITE);
+                Integer standoutColor = null, mutedBgColor = null;
+                if (preferences.contains("custom_emph_color")) {
+                    standoutColor = preferences.getInt("custom_emph_color", Color.BLACK);
+                }
+                if (preferences.contains("custom_mute_bg_color")) {
+                    mutedBgColor = preferences.getInt("custom_mute_bg_color", Color.GRAY);
+                }
+
+                return new MediaWidgetTheme(backgroundColor, standoutColor, mutedBgColor);
+            }
             case ALBUM_ART:
                 //throw new UnsupportedOperationException("Can't decode ALBUM_ART, must be done in widget");
-            case CUSTOM:
             case LIGHT:
                 return new MediaWidgetTheme(context.getResources().getColor(R.color.widgetLightBG, context.getTheme()));
             case DARK:
