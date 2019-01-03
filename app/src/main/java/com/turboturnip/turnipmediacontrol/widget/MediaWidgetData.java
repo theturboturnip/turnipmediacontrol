@@ -95,7 +95,10 @@ public class MediaWidgetData {
         boolean navLeft = false;
         boolean navRight = false;
 
+        SettingsActivity.MediaWidgetThemeType themeType;
         MediaWidgetTheme theme;
+
+        PendingIntent applicationIntent = null;
 
         @Override
         public boolean equals(@Nullable Object obj) {
@@ -113,6 +116,10 @@ public class MediaWidgetData {
                 return false;
             if (!Util.objectsEqual(theme, other.theme))
                 return false;
+            if (themeType != other.themeType)
+                return false;
+            if (!Util.objectsEqual(applicationIntent, other.applicationIntent))
+                return false;
             return true;
         }
 
@@ -123,11 +130,6 @@ public class MediaWidgetData {
         }
     }
     private ViewState currentViewState = null;
-
-    //private MediaWidgetTheme theme =
-    //        new MediaWidgetTheme(Color.argb(128, 0,0,0));
-            //new MediaWidgetTheme(Color.rgb(255,255,255));
-            //new MediaWidgetTheme(Color.rgb(255,0,0));
 
     static final String WIDGET_ACTION = "com.turboturnip.turnipmediacontrol.WIDGET_ACTION";
     static final String WIDGET_ID = "com.turboturnip.turnipmediacontrol.WIDGET_ID";
@@ -179,13 +181,12 @@ public class MediaWidgetData {
     private ViewState generateViewState(Context context) {
         ViewState resultViewState = new ViewState();
 
-        SettingsActivity.MediaWidgetThemeType themeType = SettingsActivity.getSelectedTheme(context);
-        if (themeType == SettingsActivity.MediaWidgetThemeType.ALBUM_ART) {
-            // TODO: Change default theme?
-            resultViewState.theme = currentViewState == null ?
-                    SettingsActivity.decodeExistingThemeType(context, SettingsActivity.MediaWidgetThemeType.LIGHT) : currentViewState.theme;
+        resultViewState.themeType = SettingsActivity.getSelectedTheme(context, currentViewState == null || selectedNotification == null);
+        if (resultViewState.themeType == SettingsActivity.MediaWidgetThemeType.ALBUM_ART) {
+            // This can only happen if currentViewState is not null, and we have a notification
+            resultViewState.theme = currentViewState.theme;
         } else {
-            resultViewState.theme = SettingsActivity.decodeExistingThemeType(context, themeType);
+            resultViewState.theme = SettingsActivity.decodeExistingThemeType(context, resultViewState.themeType);
         }
 
         if (selectedNotification == null) {
@@ -216,6 +217,8 @@ public class MediaWidgetData {
             resultViewState.metadata.album = (resultViewState.metadata.album == null) ? info[2] : resultViewState.metadata.album;
         }
 
+        resultViewState.applicationIntent = selectedNotification.notification.getNotification().contentIntent;
+
         if (resultViewState.metadata.albumArtBitmap == null) {
             resultViewState.metadata.albumArtIcon = selectedNotification.notification.getNotification().getLargeIcon();
             if (resultViewState.metadata.albumArtIcon == null)
@@ -229,18 +232,16 @@ public class MediaWidgetData {
         resultViewState.navRight = selectedNotificationIndex < MediaWidgetSet.instance.orderedNotifications.size() - 1;
 
 
-        if (themeType == SettingsActivity.MediaWidgetThemeType.ALBUM_ART &&
-                !Util.objectsEqual(currentViewState.metadata, resultViewState.metadata)){
+        if (resultViewState.themeType == SettingsActivity.MediaWidgetThemeType.ALBUM_ART &&
+                (
+                        !Util.objectsEqual(currentViewState.metadata, resultViewState.metadata) ||
+                                currentViewState.themeType != resultViewState.themeType
+
+                )){
             resultViewState.theme = null;
 
             Bitmap sourceBitmap = resultViewState.metadata.albumArtBitmap;
-            if (sourceBitmap == null) {
-                /*switch (resultViewState.metadata.albumArtIcon.getType()) {
-                    case Icon.TYPE_ADAPTIVE_BITMAP:
-                    case Icon.TYPE_BITMAP:
-                        sourceBitmap = resultViewState.metadata.albumArtIcon.get
-                }*/
-            } else {
+            if (sourceBitmap != null) {
                 Palette palette = Palette.from(sourceBitmap).maximumColorCount(4).generate();
                 if (palette.getVibrantSwatch() == null) {
                     List<Palette.Swatch> swatchList = palette.getSwatches();
@@ -253,6 +254,7 @@ public class MediaWidgetData {
 
             if (resultViewState.theme == null) {
                 @ColorInt int notificationColor = selectedNotification.notification.getNotification().color;
+                // Set alpha to full
                 notificationColor = notificationColor | 0xFF000000;
                 resultViewState.theme = new MediaWidgetTheme(notificationColor);
             }
@@ -276,7 +278,10 @@ public class MediaWidgetData {
         if (selectedNotification != null) {
             views = new RemoteViews(context.getPackageName(), R.layout.media_widget);
 
-            boolean updateMetadata = shouldPushFullUpdate || forceUpdateMetadata || !Util.objectsEqual(currentViewState.metadata, newViewState.metadata);
+            boolean updateMetadata = shouldPushFullUpdate ||
+                    forceUpdateMetadata ||
+                    !Util.objectsEqual(currentViewState.metadata, newViewState.metadata) ||
+                    !Util.objectsEqual(currentViewState.applicationIntent, newViewState.applicationIntent);
             boolean updatePlayback = shouldPushFullUpdate || currentViewState.playing != newViewState.playing;
             boolean updateNav = shouldPushFullUpdate || currentViewState.navLeft != newViewState.navLeft || currentViewState.navRight != newViewState.navRight;
 
@@ -289,6 +294,7 @@ public class MediaWidgetData {
                     views.setImageViewBitmap(R.id.album_art, newViewState.metadata.albumArtBitmap);
                 else
                     views.setImageViewIcon(R.id.album_art, newViewState.metadata.albumArtIcon);
+                views.setOnClickPendingIntent(R.id.album_art, newViewState.applicationIntent);
 
                 views.setTextViewText(R.id.title_text, newViewState.metadata.title);
                 views.setTextColor(R.id.title_text, newViewState.theme.standoutColor);

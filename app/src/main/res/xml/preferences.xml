@@ -20,6 +20,14 @@
 
 
     </PreferenceCategory>
+
+    <ListPreference
+        android:defaultValue="light"
+        android:entries="@array/color_choice_names_no_custom"
+        android:entryValues="@array/color_choices_no_custom"
+        android:key="quick_dial_album_art_choices"
+        android:title="Quick Dial Choice" />
+
     <PreferenceCategory android:title="Custom Colors"
         android:key="custom_colors_parent">
 

@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.support.annotation.ColorInt;
 import android.support.annotation.IntRange;
 import android.support.annotation.Nullable;
+import android.support.v7.graphics.Palette;
 
 public class MediaWidgetTheme {
     // Used for the widget background

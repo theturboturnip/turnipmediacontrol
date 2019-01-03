@@ -19,6 +19,18 @@
         <item>Custom</item>
     </string-array>
 
+    <string-array name="color_choices_no_custom">
+        <item>light</item>
+        <item>dark</item>
+        <item>custom</item>
+    </string-array>
+
+    <string-array name="color_choice_names_no_custom">
+        <item>Light</item>
+        <item>Dark</item>
+        <item>Custom</item>
+    </string-array>
+
     <!-- Strings related to Settings -->
 
     <!-- Example General settings -->
